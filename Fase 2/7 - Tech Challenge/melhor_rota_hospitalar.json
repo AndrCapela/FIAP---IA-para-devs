@@ -1,0 +1,272 @@
+{
+    "cenario": "Distribuição Hospitalar de Medicamentos e Insumos (Projeto 2)",
+    "geracoes_executadas": 200,
+    "fitness_total": 3534.12,
+    "distancia_total_px": 2723.18,
+    "penalidade_prioridade": 810.94,
+    "solucao_viavel": true,
+    "restricoes_frota": {
+        "max_veiculos": 3,
+        "capacidade_veiculo_kg": 85.0,
+        "autonomia_maxima_px": 950.0
+    },
+    "deposito_central": {
+        "id": 0,
+        "nome": "Hospital Universitário Central (CD)",
+        "coordenadas_tela": [
+            760,
+            300
+        ],
+        "coordenadas_geo": [
+            -23.5587,
+            -46.6623
+        ]
+    },
+    "rotas_veiculos": [
+        {
+            "veiculo_id": 1,
+            "carga_total_kg": 75.0,
+            "distancia_percorrida_px": 906.58,
+            "paradas": [
+                {
+                    "ordem_parada": 1,
+                    "id": 1,
+                    "nome": "UTI Cardio - Anexo Sul",
+                    "prioridade": "Crítico (UTI/Emergência)",
+                    "peso_kg": 12.0,
+                    "insumo": "Hemoderivados e Vasopressores (UTI)",
+                    "coordenadas_tela": [
+                        710,
+                        420
+                    ],
+                    "coordenadas_geo": [
+                        -23.5989,
+                        -46.6476
+                    ]
+                },
+                {
+                    "ordem_parada": 2,
+                    "id": 8,
+                    "nome": "UBS Vila Mariana",
+                    "prioridade": "Regular",
+                    "peso_kg": 25.0,
+                    "insumo": "Soro Fisiológico, Gazes e Luvas",
+                    "coordenadas_tela": [
+                        790,
+                        490
+                    ],
+                    "coordenadas_geo": [
+                        -23.618,
+                        -46.635
+                    ]
+                },
+                {
+                    "ordem_parada": 3,
+                    "id": 7,
+                    "nome": "Home Care - Paciente 02 (Pós-Cirúrgico)",
+                    "prioridade": "Urgente",
+                    "peso_kg": 6.0,
+                    "insumo": "Anticoagulantes e Curativos Especiais",
+                    "coordenadas_tela": [
+                        880,
+                        410
+                    ],
+                    "coordenadas_geo": [
+                        -23.595,
+                        -46.585
+                    ]
+                },
+                {
+                    "ordem_parada": 4,
+                    "id": 14,
+                    "nome": "Hospital Dia - Geriatria",
+                    "prioridade": "Regular",
+                    "peso_kg": 18.0,
+                    "insumo": "Fraldas Hospitalares, Soro e Equipo",
+                    "coordenadas_tela": [
+                        1010,
+                        490
+                    ],
+                    "coordenadas_geo": [
+                        -23.619,
+                        -46.542
+                    ]
+                },
+                {
+                    "ordem_parada": 5,
+                    "id": 11,
+                    "nome": "Laboratório Central de Análises",
+                    "prioridade": "Regular",
+                    "peso_kg": 14.0,
+                    "insumo": "Reagentes e Tubos de Coleta",
+                    "coordenadas_tela": [
+                        1020,
+                        360
+                    ],
+                    "coordenadas_geo": [
+                        -23.575,
+                        -46.535
+                    ]
+                }
+            ]
+        },
+        {
+            "veiculo_id": 2,
+            "carga_total_kg": 71.0,
+            "distancia_percorrida_px": 879.57,
+            "paradas": [
+                {
+                    "ordem_parada": 1,
+                    "id": 4,
+                    "nome": "Maternidade Universitária",
+                    "prioridade": "Urgente",
+                    "peso_kg": 15.0,
+                    "insumo": "Antibióticos Pediátricos e Surfactante",
+                    "coordenadas_tela": [
+                        610,
+                        210
+                    ],
+                    "coordenadas_geo": [
+                        -23.532,
+                        -46.715
+                    ]
+                },
+                {
+                    "ordem_parada": 2,
+                    "id": 13,
+                    "nome": "Home Care - Paciente 03 (Oxigenoterapia)",
+                    "prioridade": "Crítico (UTI/Emergência)",
+                    "peso_kg": 15.0,
+                    "insumo": "Cilindro Portátil de O2 e Broncodilatadores",
+                    "coordenadas_tela": [
+                        510,
+                        150
+                    ],
+                    "coordenadas_geo": [
+                        -23.508,
+                        -46.748
+                    ]
+                },
+                {
+                    "ordem_parada": 3,
+                    "id": 6,
+                    "nome": "UPA Zona Oeste",
+                    "prioridade": "Urgente",
+                    "peso_kg": 22.0,
+                    "insumo": "Analgésicos Injetáveis e Antitérmicos",
+                    "coordenadas_tela": [
+                        520,
+                        320
+                    ],
+                    "coordenadas_geo": [
+                        -23.565,
+                        -46.755
+                    ]
+                },
+                {
+                    "ordem_parada": 4,
+                    "id": 12,
+                    "nome": "UBS Pinheiros",
+                    "prioridade": "Regular",
+                    "peso_kg": 19.0,
+                    "insumo": "Medicamentos de Uso Contínuo (Hipertensão)",
+                    "coordenadas_tela": [
+                        560,
+                        470
+                    ],
+                    "coordenadas_geo": [
+                        -23.612,
+                        -46.725
+                    ]
+                }
+            ]
+        },
+        {
+            "veiculo_id": 3,
+            "carga_total_kg": 69.0,
+            "distancia_percorrida_px": 937.03,
+            "paradas": [
+                {
+                    "ordem_parada": 1,
+                    "id": 3,
+                    "nome": "Centro Oncológico Leste",
+                    "prioridade": "Crítico (UTI/Emergência)",
+                    "peso_kg": 10.0,
+                    "insumo": "Quimioterápicos Termolábeis",
+                    "coordenadas_tela": [
+                        960,
+                        260
+                    ],
+                    "coordenadas_geo": [
+                        -23.542,
+                        -46.56
+                    ]
+                },
+                {
+                    "ordem_parada": 2,
+                    "id": 10,
+                    "nome": "Ambulatório de Especialidades",
+                    "prioridade": "Regular",
+                    "peso_kg": 16.0,
+                    "insumo": "Insumos Ambulatoriais e Ataduras",
+                    "coordenadas_tela": [
+                        920,
+                        100
+                    ],
+                    "coordenadas_geo": [
+                        -23.492,
+                        -46.572
+                    ]
+                },
+                {
+                    "ordem_parada": 3,
+                    "id": 5,
+                    "nome": "Home Care - Paciente 01 (Insulina)",
+                    "prioridade": "Urgente",
+                    "peso_kg": 5.0,
+                    "insumo": "Insulina Glargina Refrigerada",
+                    "coordenadas_tela": [
+                        850,
+                        170
+                    ],
+                    "coordenadas_geo": [
+                        -23.518,
+                        -46.598
+                    ]
+                },
+                {
+                    "ordem_parada": 4,
+                    "id": 2,
+                    "nome": "Pronto Socorro Norte",
+                    "prioridade": "Crítico (UTI/Emergência)",
+                    "peso_kg": 18.0,
+                    "insumo": "Kit Intubação e Sedativos de Emergência",
+                    "coordenadas_tela": [
+                        740,
+                        110
+                    ],
+                    "coordenadas_geo": [
+                        -23.495,
+                        -46.625
+                    ]
+                },
+                {
+                    "ordem_parada": 5,
+                    "id": 9,
+                    "nome": "UBS Santana",
+                    "prioridade": "Regular",
+                    "peso_kg": 20.0,
+                    "insumo": "Vacinas de Rotina e Seringas Descartáveis",
+                    "coordenadas_tela": [
+                        640,
+                        90
+                    ],
+                    "coordenadas_geo": [
+                        -23.485,
+                        -46.685
+                    ]
+                }
+            ]
+        }
+    ]
+}

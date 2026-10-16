@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Mapa Interativo de Rotas Hospitalares - Tech Challenge Fase 2</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; display: flex; height: 100vh; }
+        #sidebar { width: 360px; padding: 16px; background: #f8fafc; border-right: 1px solid #cbd5e1; overflow-y: auto; }
+        #map { flex: 1; height: 100vh; }
+        h2 { margin-top: 0; color: #0f172a; font-size: 18px; }
+        .card { background: white; padding: 12px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 12px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; color: white; font-size: 12px; font-weight: bold; }
+        ul { padding-left: 18px; margin: 6px 0; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <h2>Logística Hospitalar (AG + VRP)</h2>
+        <div class="card">
+            <strong>Resumo da Solução Otimizada</strong><br><br>
+            Fitness Total: <b>3534.12</b><br>
+            Distância Total: <b>2723.2 px</b><br>
+            Penalidade de Prioridade: <b>810.9</b><br>
+            Status: <b style="color: #16a34a">
+                Viável (Dentro dos limites)
+            </b>
+        </div>
+        <div id="routes-summary"></div>
+    </div>
+    <div id="map"></div>
+    <script>
+        const markers = [{"id": 0, "name": "Hospital Universitário Central (CD)", "lat": -23.5587, "lon": -46.6623, "priority": "Depósito Central", "color": "#14285a", "demand_kg": 0, "item": "Centro de Distribuição Farmacêutica", "vehicle": "Todos (Ponto de Partida/Retorno)", "stop_order": 0}, {"id": 1, "name": "UTI Cardio - Anexo Sul", "lat": -23.5989, "lon": -46.6476, "priority": "Crítico (UTI/Emergência)", "color": "#dc2626", "demand_kg": 12.0, "item": "Hemoderivados e Vasopressores (UTI)", "vehicle": "Veículo 1", "stop_order": 1}, {"id": 8, "name": "UBS Vila Mariana", "lat": -23.618, "lon": -46.635, "priority": "Regular", "color": "#16a34a", "demand_kg": 25.0, "item": "Soro Fisiológico, Gazes e Luvas", "vehicle": "Veículo 1", "stop_order": 2}, {"id": 7, "name": "Home Care - Paciente 02 (Pós-Cirúrgico)", "lat": -23.595, "lon": -46.585, "priority": "Urgente", "color": "#ea8a00", "demand_kg": 6.0, "item": "Anticoagulantes e Curativos Especiais", "vehicle": "Veículo 1", "stop_order": 3}, {"id": 14, "name": "Hospital Dia - Geriatria", "lat": -23.619, "lon": -46.542, "priority": "Regular", "color": "#16a34a", "demand_kg": 18.0, "item": "Fraldas Hospitalares, Soro e Equipo", "vehicle": "Veículo 1", "stop_order": 4}, {"id": 11, "name": "Laboratório Central de Análises", "lat": -23.575, "lon": -46.535, "priority": "Regular", "color": "#16a34a", "demand_kg": 14.0, "item": "Reagentes e Tubos de Coleta", "vehicle": "Veículo 1", "stop_order": 5}, {"id": 4, "name": "Maternidade Universitária", "lat": -23.532, "lon": -46.715, "priority": "Urgente", "color": "#ea8a00", "demand_kg": 15.0, "item": "Antibióticos Pediátricos e Surfactante", "vehicle": "Veículo 2", "stop_order": 1}, {"id": 13, "name": "Home Care - Paciente 03 (Oxigenoterapia)", "lat": -23.508, "lon": -46.748, "priority": "Crítico (UTI/Emergência)", "color": "#dc2626", "demand_kg": 15.0, "item": "Cilindro Portátil de O2 e Broncodilatadores", "vehicle": "Veículo 2", "stop_order": 2}, {"id": 6, "name": "UPA Zona Oeste", "lat": -23.565, "lon": -46.755, "priority": "Urgente", "color": "#ea8a00", "demand_kg": 22.0, "item": "Analgésicos Injetáveis e Antitérmicos", "vehicle": "Veículo 2", "stop_order": 3}, {"id": 12, "name": "UBS Pinheiros", "lat": -23.612, "lon": -46.725, "priority": "Regular", "color": "#16a34a", "demand_kg": 19.0, "item": "Medicamentos de Uso Contínuo (Hipertensão)", "vehicle": "Veículo 2", "stop_order": 4}, {"id": 3, "name": "Centro Oncológico Leste", "lat": -23.542, "lon": -46.56, "priority": "Crítico (UTI/Emergência)", "color": "#dc2626", "demand_kg": 10.0, "item": "Quimioterápicos Termolábeis", "vehicle": "Veículo 3", "stop_order": 1}, {"id": 10, "name": "Ambulatório de Especialidades", "lat": -23.492, "lon": -46.572, "priority": "Regular", "color": "#16a34a", "demand_kg": 16.0, "item": "Insumos Ambulatoriais e Ataduras", "vehicle": "Veículo 3", "stop_order": 2}, {"id": 5, "name": "Home Care - Paciente 01 (Insulina)", "lat": -23.518, "lon": -46.598, "priority": "Urgente", "color": "#ea8a00", "demand_kg": 5.0, "item": "Insulina Glargina Refrigerada", "vehicle": "Veículo 3", "stop_order": 3}, {"id": 2, "name": "Pronto Socorro Norte", "lat": -23.495, "lon": -46.625, "priority": "Crítico (UTI/Emergência)", "color": "#dc2626", "demand_kg": 18.0, "item": "Kit Intubação e Sedativos de Emergência", "vehicle": "Veículo 3", "stop_order": 4}, {"id": 9, "name": "UBS Santana", "lat": -23.485, "lon": -46.685, "priority": "Regular", "color": "#16a34a", "demand_kg": 20.0, "item": "Vacinas de Rotina e Seringas Descartáveis", "vehicle": "Veículo 3", "stop_order": 5}];
+        const routes = [{"vehicle_id": 1, "color": "#2563eb", "load_kg": 75.0, "distance": 906.6, "coords": [[-23.5587, -46.6623], [-23.5989, -46.6476], [-23.618, -46.635], [-23.595, -46.585], [-23.619, -46.542], [-23.575, -46.535], [-23.5587, -46.6623]]}, {"vehicle_id": 2, "color": "#9333ea", "load_kg": 71.0, "distance": 879.6, "coords": [[-23.5587, -46.6623], [-23.532, -46.715], [-23.508, -46.748], [-23.565, -46.755], [-23.612, -46.725], [-23.5587, -46.6623]]}, {"vehicle_id": 3, "color": "#0891b2", "load_kg": 69.0, "distance": 937.0, "coords": [[-23.5587, -46.6623], [-23.542, -46.56], [-23.492, -46.572], [-23.518, -46.598], [-23.495, -46.625], [-23.485, -46.685], [-23.5587, -46.6623]]}];
+
+        const map = L.map('map').setView([-23.5587, -46.6623], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        const summaryDiv = document.getElementById('routes-summary');
+        routes.forEach(r => {
+            L.polyline(r.coords, { color: r.color, weight: 4, opacity: 0.85 }).addTo(map);
+            const card = document.createElement('div');
+            card.className = 'card';
+            const stopsList = markers
+                .filter(m => m.vehicle === 'Veículo ' + r.vehicle_id)
+                .sort((a, b) => a.stop_order - b.stop_order)
+                .map(m => `<li><b>${m.stop_order}º</b> - #${m.id} ${m.name} (${m.demand_kg}kg - ${m.priority})</li>`)
+                .join('');
+            card.innerHTML = `
+                <span class="badge" style="background:${r.color}">Veículo ${r.vehicle_id}</span>
+                <span style="font-size:13px; margin-left:6px;">Carga: <b>${r.load_kg}kg</b> | Dist: <b>${r.distance}px</b></span>
+                <ul>${stopsList}</ul>
+            `;
+            summaryDiv.appendChild(card);
+        });
+
+        markers.forEach(m => {
+            const radius = m.id === 0 ? 11 : 8;
+            const marker = L.circleMarker([m.lat, m.lon], {
+                radius: radius,
+                fillColor: m.color,
+                color: m.id === 0 ? '#facc15' : '#1e293b',
+                weight: m.id === 0 ? 3 : 1.5,
+                opacity: 1,
+                fillOpacity: 0.95
+            }).addTo(map);
+
+            marker.bindPopup(`
+                <b>#${m.id} - ${m.name}</b><br>
+                <b>Prioridade:</b> ${m.priority}<br>
+                <b>Insumo/Medicamento:</b> ${m.item}<br>
+                <b>Peso da Carga:</b> ${m.demand_kg} kg<br>
+                <b>Atendimento:</b> ${m.vehicle} ${m.stop_order > 0 ? '(' + m.stop_order + 'ª parada)' : ''}
+            `);
+        });
+    </script>
+</body>
+</html>
