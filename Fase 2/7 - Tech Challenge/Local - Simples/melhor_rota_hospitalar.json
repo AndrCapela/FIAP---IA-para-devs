@@ -1,6 +1,6 @@
 {
     "cenario": "Distribuição Hospitalar de Medicamentos e Insumos (Projeto 2)",
-    "geracoes_executadas": 200,
+    "geracoes_executadas": 117,
     "fitness_total": 3534.12,
     "distancia_total_px": 2723.18,
     "penalidade_prioridade": 810.94,
@@ -25,6 +25,93 @@
     "rotas_veiculos": [
         {
             "veiculo_id": 1,
+            "carga_total_kg": 69.0,
+            "distancia_percorrida_px": 937.03,
+            "paradas": [
+                {
+                    "ordem_parada": 1,
+                    "id": 3,
+                    "nome": "Centro Oncológico Leste",
+                    "prioridade": "Crítico (UTI/Emergência)",
+                    "peso_kg": 10.0,
+                    "insumo": "Quimioterápicos Termolábeis",
+                    "coordenadas_tela": [
+                        960,
+                        260
+                    ],
+                    "coordenadas_geo": [
+                        -23.542,
+                        -46.56
+                    ]
+                },
+                {
+                    "ordem_parada": 2,
+                    "id": 10,
+                    "nome": "Ambulatório de Especialidades",
+                    "prioridade": "Regular",
+                    "peso_kg": 16.0,
+                    "insumo": "Insumos Ambulatoriais e Ataduras",
+                    "coordenadas_tela": [
+                        920,
+                        100
+                    ],
+                    "coordenadas_geo": [
+                        -23.492,
+                        -46.572
+                    ]
+                },
+                {
+                    "ordem_parada": 3,
+                    "id": 5,
+                    "nome": "Home Care - Paciente 01 (Insulina)",
+                    "prioridade": "Urgente",
+                    "peso_kg": 5.0,
+                    "insumo": "Insulina Glargina Refrigerada",
+                    "coordenadas_tela": [
+                        850,
+                        170
+                    ],
+                    "coordenadas_geo": [
+                        -23.518,
+                        -46.598
+                    ]
+                },
+                {
+                    "ordem_parada": 4,
+                    "id": 2,
+                    "nome": "Pronto Socorro Norte",
+                    "prioridade": "Crítico (UTI/Emergência)",
+                    "peso_kg": 18.0,
+                    "insumo": "Kit Intubação e Sedativos de Emergência",
+                    "coordenadas_tela": [
+                        740,
+                        110
+                    ],
+                    "coordenadas_geo": [
+                        -23.495,
+                        -46.625
+                    ]
+                },
+                {
+                    "ordem_parada": 5,
+                    "id": 9,
+                    "nome": "UBS Santana",
+                    "prioridade": "Regular",
+                    "peso_kg": 20.0,
+                    "insumo": "Vacinas de Rotina e Seringas Descartáveis",
+                    "coordenadas_tela": [
+                        640,
+                        90
+                    ],
+                    "coordenadas_geo": [
+                        -23.485,
+                        -46.685
+                    ]
+                }
+            ]
+        },
+        {
+            "veiculo_id": 2,
             "carga_total_kg": 75.0,
             "distancia_percorrida_px": 906.58,
             "paradas": [
@@ -111,7 +198,7 @@
             ]
         },
         {
-            "veiculo_id": 2,
+            "veiculo_id": 3,
             "carga_total_kg": 71.0,
             "distancia_percorrida_px": 879.57,
             "paradas": [
@@ -177,93 +264,6 @@
                     "coordenadas_geo": [
                         -23.612,
                         -46.725
-                    ]
-                }
-            ]
-        },
-        {
-            "veiculo_id": 3,
-            "carga_total_kg": 69.0,
-            "distancia_percorrida_px": 937.03,
-            "paradas": [
-                {
-                    "ordem_parada": 1,
-                    "id": 3,
-                    "nome": "Centro Oncológico Leste",
-                    "prioridade": "Crítico (UTI/Emergência)",
-                    "peso_kg": 10.0,
-                    "insumo": "Quimioterápicos Termolábeis",
-                    "coordenadas_tela": [
-                        960,
-                        260
-                    ],
-                    "coordenadas_geo": [
-                        -23.542,
-                        -46.56
-                    ]
-                },
-                {
-                    "ordem_parada": 2,
-                    "id": 10,
-                    "nome": "Ambulatório de Especialidades",
-                    "prioridade": "Regular",
-                    "peso_kg": 16.0,
-                    "insumo": "Insumos Ambulatoriais e Ataduras",
-                    "coordenadas_tela": [
-                        920,
-                        100
-                    ],
-                    "coordenadas_geo": [
-                        -23.492,
-                        -46.572
-                    ]
-                },
-                {
-                    "ordem_parada": 3,
-                    "id": 5,
-                    "nome": "Home Care - Paciente 01 (Insulina)",
-                    "prioridade": "Urgente",
-                    "peso_kg": 5.0,
-                    "insumo": "Insulina Glargina Refrigerada",
-                    "coordenadas_tela": [
-                        850,
-                        170
-                    ],
-                    "coordenadas_geo": [
-                        -23.518,
-                        -46.598
-                    ]
-                },
-                {
-                    "ordem_parada": 4,
-                    "id": 2,
-                    "nome": "Pronto Socorro Norte",
-                    "prioridade": "Crítico (UTI/Emergência)",
-                    "peso_kg": 18.0,
-                    "insumo": "Kit Intubação e Sedativos de Emergência",
-                    "coordenadas_tela": [
-                        740,
-                        110
-                    ],
-                    "coordenadas_geo": [
-                        -23.495,
-                        -46.625
-                    ]
-                },
-                {
-                    "ordem_parada": 5,
-                    "id": 9,
-                    "nome": "UBS Santana",
-                    "prioridade": "Regular",
-                    "peso_kg": 20.0,
-                    "insumo": "Vacinas de Rotina e Seringas Descartáveis",
-                    "coordenadas_tela": [
-                        640,
-                        90
-                    ],
-                    "coordenadas_geo": [
-                        -23.485,
-                        -46.685
                     ]
                 }
             ]

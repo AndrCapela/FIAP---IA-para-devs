@@ -1,35 +1,29 @@
 # -*- coding: utf-8 -*-
 """
-Módulo de Algoritmo Genético para Otimização de Rotas Médicas (TSP / VRP Hospitalar)
+Módulo de Algoritmo Genético e Modelagem VRP para Otimização de Rotas Médicas
 Tech Challenge - Fase 2 (Projeto 2: Otimização de Rotas para Distribuição de Medicamentos e Insumos)
 
-Este módulo foi construído a partir do arquivo `genetic_algorithm.py` original fornecido na disciplina,
-sendo expandido e comentado detalhadamente para atender aos requisitos do hospital universitário:
-1. Representação genética adequada para pontos de entrega hospitalares;
-2. Restrições realistas:
-   - Diferentes prioridades de entrega (Crítico, Urgente, Regular);
-   - Capacidade máxima de carga por veículo (em kg);
-   - Autonomia máxima por veículo (distância máxima percorrida por viagem);
-   - Múltiplos veículos saindo e retornando ao Hospital Central (VRP - Vehicle Routing Problem);
-3. Operadores genéticos especializados:
-   - Inicialização híbrida (Aleatória + Heurística Nearest Neighbor com Prioridade);
-   - Seleção por Torneio e Seleção por Roleta (proporcional ao inverso do Fitness);
-   - Cruzamento Order Crossover (OX) preservando a validade das rotas sem repetir cidades;
-   - Mutação combinada (Swap + Inversão de segmento / 2-opt com intensidade configurável).
+Este módulo contém:
+1. A estrutura de dados `DeliveryPoint` (unidades hospitalares / pacientes);
+2. A função `split_route_into_vehicles` que suporta tanto frota homogênea quanto
+   FROTA HETEROGÊNEA (cada veículo com sua própria capacidade em kg e autonomia máxima em px);
+3. A função de avaliação multicritério (`evaluate_solution_details` e `calculate_fitness`);
+4. Os operadores do Algoritmo Genético (Seleção por Torneio/Roleta, Order Crossover OX,
+   Mutação 2-opt + Swap + Prioridade) e o gerador passo a passo `run_genetic_algorithm`.
 """
 
 import random
 import math
 import copy
+import numpy as np
 from dataclasses import dataclass
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Optional, Generator
 
 
 # ==============================================================================
 # 1. REPRESENTAÇÃO DOS PONTOS DE ENTREGA E ESTRUTURAS DE DADOS
 # ==============================================================================
 
-# Constantes de Níveis de Prioridade para facilitar a leitura do código
 PRIORITY_DEPOT = 0     # Ponto de partida/retorno (Hospital Central / Centro de Distribuição)
 PRIORITY_REGULAR = 1   # Insumos regulares (ex.: luvas, gazes, seringas, soro fisiológico)
 PRIORITY_URGENT = 2    # Medicamentos urgentes (ex.: antibióticos, insulina refrigerada)
@@ -48,22 +42,20 @@ class DeliveryPoint:
     """
     Representa uma unidade hospitalar, clínica ou residência de paciente (um "gene" da rota).
     Usamos `frozen=True` para que o objeto seja imutável e possa ser comparado diretamente
-    no operador de Order Crossover (`gene not in child`), exatamente como as tuplas `(x, y)`
-    do código original `tsp.py`.
+    nos operadores de cruzamento (`gene not in child`).
     """
     id: int                       # Identificador único (0 = Hospital Central)
     name: str                     # Nome da unidade de saúde ou paciente domiciliar
-    x: int                        # Coordenada X na tela do Pygame (em pixels)
-    y: int                        # Coordenada Y na tela do Pygame (em pixels)
+    x: int                        # Coordenada X na tela (em pixels)
+    y: int                        # Coordenada Y na tela (em pixels)
     demand_kg: float              # Peso da entrega em quilogramas (kg)
     priority: int                 # Nível de prioridade: 1 (Regular), 2 (Urgente), 3 (Crítico)
     item_description: str = ""    # Descrição do medicamento/insumo entregue
-    lat: float = -23.5505         # Latitude real aproximada (para geração de mapa interativo)
-    lon: float = -46.6333         # Longitude real aproximada (para geração de mapa interativo)
+    lat: float = -23.5505         # Latitude real aproximada (para o mapa geográfico)
+    lon: float = -46.6333         # Longitude real aproximada (para o mapa geográfico)
 
     @property
     def pos(self) -> Tuple[int, int]:
-        """Retorna a tupla (x, y) para compatibilidade direta com funções de desenho."""
         return (self.x, self.y)
 
 
@@ -80,13 +72,8 @@ def get_hospital_scenario() -> Tuple[DeliveryPoint, List[DeliveryPoint]]:
     """
     Cria o cenário hospitalar pré-definido realista com:
     - 1 Hospital Universitário Central (Depósito de onde saem os veículos);
-    - 14 pontos de entrega entre Unidades de Pronto Atendimento (UPAs), UTIs,
-      Unidades Básicas de Saúde (UBS) e pacientes em atendimento domiciliar (Home Care).
-
-    As coordenadas (x, y) estão mapeadas para a área de mapa do Pygame (X entre 480 e 1060, Y entre 50 e 550),
-    enquanto (lat, lon) representam coordenadas reais na região metropolitana de São Paulo.
+    - 14 pontos de entrega entre UTIs, Pronto-Socorros, UPAs, UBS e pacientes em Home Care.
     """
-    # Ponto 0: Hospital Central (Depósito) posicionado estrategicamente próximo ao centro do mapa
     depot = DeliveryPoint(
         id=0,
         name="Hospital Universitário Central (CD)",
@@ -94,10 +81,9 @@ def get_hospital_scenario() -> Tuple[DeliveryPoint, List[DeliveryPoint]]:
         demand_kg=0.0,
         priority=PRIORITY_DEPOT,
         item_description="Centro de Distribuição Farmacêutica",
-        lat=-23.5587, lon=-46.6623  # Região Clínicas / Pinheiros
+        lat=-23.5587, lon=-46.6623
     )
 
-    # Lista de entregas que precisam ser realizadas pelos veículos da frota
     deliveries = [
         DeliveryPoint(
             id=1, name="UTI Cardio - Anexo Sul",
@@ -196,8 +182,7 @@ def generate_random_hospital_scenario(
     max_y: int = 550
 ) -> Tuple[DeliveryPoint, List[DeliveryPoint]]:
     """
-    Gera um cenário hospitalar aleatório caso o usuário deseje testar com diferentes
-    quantidades de pontos ou disposições geográficas aleatórias.
+    Gera um cenário hospitalar aleatório com `n_deliveries` pontos de entrega.
     """
     center_x = (min_x + max_x) // 2
     center_y = (min_y + max_y) // 2
@@ -215,7 +200,6 @@ def generate_random_hospital_scenario(
     )
 
     deliveries = []
-    # Distribuição realista de prioridades: 25% Crítico, 35% Urgente, 40% Regular
     priority_choices = [PRIORITY_CRITICAL, PRIORITY_URGENT, PRIORITY_REGULAR]
     priority_weights = [0.25, 0.35, 0.40]
 
@@ -225,7 +209,6 @@ def generate_random_hospital_scenario(
         prio = random.choices(priority_choices, weights=priority_weights, k=1)[0]
         demand = float(random.randint(5, 25))
 
-        # Converte deslocamento de pixels em deslocamento aproximado de lat/lon para o mapa
         lat = -23.5505 - ((py - center_y) * 0.0003)
         lon = -46.6333 + ((px - center_x) * 0.0003)
 
@@ -246,14 +229,48 @@ def generate_random_hospital_scenario(
     return depot, deliveries
 
 
+def normalize_vehicles_specs(
+    max_vehicles: int = 3,
+    vehicle_capacity_kg: float = 85.0,
+    vehicle_max_distance: float = 950.0,
+    vehicles_specs: Optional[List[Dict[str, Any]]] = None
+) -> List[Dict[str, Any]]:
+    """
+    Normaliza a configuração da frota de veículos.
+    - Se `vehicles_specs` for passado (Etapa 2: cada veículo com sua própria capacidade e autonomia),
+      utiliza os limites individuais de cada veículo;
+    - Caso contrário, gera uma lista uniforme de `max_vehicles` veículos para manter total
+      compatibilidade com chamadas antigas (`tsp.py`).
+    """
+    if vehicles_specs and len(vehicles_specs) > 0:
+        normalized = []
+        for idx, spec in enumerate(vehicles_specs, start=1):
+            normalized.append({
+                "vehicle_id": int(spec.get("vehicle_id", idx)),
+                "name": str(spec.get("name", f"Veículo {idx}")),
+                "capacity_kg": float(spec.get("capacity_kg", vehicle_capacity_kg)),
+                "max_distance": float(spec.get("max_distance", vehicle_max_distance))
+            })
+        return normalized
+
+    return [
+        {
+            "vehicle_id": idx,
+            "name": f"Veículo {idx}",
+            "capacity_kg": float(vehicle_capacity_kg),
+            "max_distance": float(vehicle_max_distance)
+        }
+        for idx in range(1, max(1, max_vehicles) + 1)
+    ]
+
+
 # ==============================================================================
-# 2. CÁLCULO DE DISTÂNCIA E DIVISÃO DE ROTAS POR VEÍCULO (VRP)
+# 2. CÁLCULO DE DISTÂNCIA E DIVISÃO DE ROTAS POR VEÍCULO (FROTA HETEROGÊNEA)
 # ==============================================================================
 
 def calculate_distance(point1: Any, point2: Any) -> float:
     """
-    Calcula a distância euclidiana entre dois pontos.
-    Aceita tanto objetos `DeliveryPoint` quanto tuplas `(x, y)` do código original.
+    Calcula a distância euclidiana entre dois pontos (`DeliveryPoint` ou tupla `(x, y)`).
     """
     x1, y1 = (point1.x, point1.y) if isinstance(point1, DeliveryPoint) else (point1[0], point1[1])
     x2, y2 = (point2.x, point2.y) if isinstance(point2, DeliveryPoint) else (point2[0], point2[1])
@@ -265,61 +282,65 @@ def split_route_into_vehicles(
     depot: DeliveryPoint,
     max_vehicles: int = 3,
     vehicle_capacity_kg: float = 85.0,
-    vehicle_max_distance: float = 950.0
+    vehicle_max_distance: float = 950.0,
+    vehicles_specs: Optional[List[Dict[str, Any]]] = None
 ) -> List[Dict[str, Any]]:
     """
-    Decodifica um cromossomo (sequência permutada de entregas) dividindo-o em rotas
-    para múltiplos veículos (VRP - Vehicle Routing Problem).
-
-    Como funciona a divisão:
-    - Cada veículo parte do `depot` (Hospital Central) e começa a atender os pontos na ordem
-      definida pelo cromossomo.
-    - Antes de adicionar a próxima entrega ao veículo atual, verificamos:
-      1) Se o peso acumulado (`current_load + point.demand_kg`) ultrapassaria a capacidade do veículo;
-      2) Se a distância total da viagem (incluindo o retorno obrigatório ao Hospital Central)
-         ultrapassaria a autonomia máxima (`vehicle_max_distance`).
-    - Se algum limite for excedido e ainda houver veículos disponíveis na frota (`len(routes) < max_vehicles`),
-      o veículo atual retorna ao Hospital Central e o próximo veículo assume a partir dali!
-    - Caso todos os veículos da frota já estejam em uso, o último veículo é forçado a absorver
-      as entregas restantes, e o excesso de carga/distância será fortemente penalizado na função Fitness.
+    Decodifica uma sequência de entregas (cromossomo) dividindo-a entre os veículos disponíveis,
+    respeitando a capacidade de carga (`capacity_kg`) e a autonomia (`max_distance`)
+    INDIVIDUAL de cada veículo da frota!
     """
     if not chromosome:
         return []
 
+    specs = normalize_vehicles_specs(
+        max_vehicles=max_vehicles,
+        vehicle_capacity_kg=vehicle_capacity_kg,
+        vehicle_max_distance=vehicle_max_distance,
+        vehicles_specs=vehicles_specs
+    )
+    total_fleet = len(specs)
+
     routes = []
+    current_v_idx = 0
     current_stops: List[DeliveryPoint] = []
     current_load = 0.0
     current_distance = 0.0
     last_point = depot
 
     for point in chromosome:
+        v_spec = specs[current_v_idx]
+        v_cap = v_spec["capacity_kg"]
+        v_aut = v_spec["max_distance"]
+
         dist_to_point = calculate_distance(last_point, point)
         dist_back_to_depot = calculate_distance(point, depot)
 
-        # Verifica se adicionar este ponto excede a capacidade de carga ou a autonomia do veículo atual
-        would_exceed_capacity = (current_load + point.demand_kg) > vehicle_capacity_kg
-        would_exceed_autonomy = (current_distance + dist_to_point + dist_back_to_depot) > vehicle_max_distance
+        would_exceed_capacity = (current_load + point.demand_kg) > v_cap
+        would_exceed_autonomy = (current_distance + dist_to_point + dist_back_to_depot) > v_aut
 
-        # Se já temos paradas no veículo atual, algum limite foi atingido e ainda há veículos livres na frota:
-        if current_stops and (would_exceed_capacity or would_exceed_autonomy) and (len(routes) < max_vehicles - 1):
-            # Fecha a rota do veículo atual retornando ao Hospital Central
+        # Se o veículo atual atingiu seu limite individual de carga ou autonomia e ainda há outro veículo na frota:
+        if current_stops and (would_exceed_capacity or would_exceed_autonomy) and (current_v_idx < total_fleet - 1):
             total_route_dist = current_distance + calculate_distance(last_point, depot)
             routes.append({
-                "vehicle_id": len(routes) + 1,
+                "vehicle_id": v_spec["vehicle_id"],
+                "vehicle_name": v_spec["name"],
+                "capacity_limit_kg": v_cap,
+                "autonomy_limit_px": v_aut,
                 "stops": current_stops,
                 "full_path": [depot] + current_stops + [depot],
                 "load_kg": current_load,
                 "distance": total_route_dist,
-                "capacity_exceeded": max(0.0, current_load - vehicle_capacity_kg),
-                "autonomy_exceeded": max(0.0, total_route_dist - vehicle_max_distance)
+                "capacity_exceeded": max(0.0, current_load - v_cap),
+                "autonomy_exceeded": max(0.0, total_route_dist - v_aut)
             })
-            # Inicia um novo veículo saindo do Hospital Central
+            # Passa para o próximo veículo da frota (com seus próprios limites de carga e autonomia)
+            current_v_idx += 1
             current_stops = [point]
             current_load = point.demand_kg
             current_distance = calculate_distance(depot, point)
             last_point = point
         else:
-            # Continua no mesmo veículo
             current_stops.append(point)
             current_load += point.demand_kg
             current_distance += dist_to_point
@@ -327,15 +348,21 @@ def split_route_into_vehicles(
 
     # Fecha a rota do último veículo utilizado
     if current_stops:
+        v_spec = specs[current_v_idx]
+        v_cap = v_spec["capacity_kg"]
+        v_aut = v_spec["max_distance"]
         total_route_dist = current_distance + calculate_distance(last_point, depot)
         routes.append({
-            "vehicle_id": len(routes) + 1,
+            "vehicle_id": v_spec["vehicle_id"],
+            "vehicle_name": v_spec["name"],
+            "capacity_limit_kg": v_cap,
+            "autonomy_limit_px": v_aut,
             "stops": current_stops,
             "full_path": [depot] + current_stops + [depot],
             "load_kg": current_load,
             "distance": total_route_dist,
-            "capacity_exceeded": max(0.0, current_load - vehicle_capacity_kg),
-            "autonomy_exceeded": max(0.0, total_route_dist - vehicle_max_distance)
+            "capacity_exceeded": max(0.0, current_load - v_cap),
+            "autonomy_exceeded": max(0.0, total_route_dist - v_aut)
         })
 
     return routes
@@ -351,23 +378,18 @@ def evaluate_solution_details(
     max_vehicles: int = 3,
     vehicle_capacity_kg: float = 85.0,
     vehicle_max_distance: float = 950.0,
+    vehicles_specs: Optional[List[Dict[str, Any]]] = None,
     priority_penalty_weight: float = 0.35,
     capacity_penalty_weight: float = 40.0,
     autonomy_penalty_weight: float = 15.0
 ) -> Dict[str, Any]:
     """
-    Avalia detalhadamente um indivíduo (solução), retornando tanto o valor final de Fitness
-    quanto cada componente de custo separadamente (para exibição no painel e relatórios).
-
-    Componentes do Fitness (problema de MINIMIZAÇÃO — quanto menor o valor, melhor a rota):
-    1. `total_distance`: Soma das distâncias percorridas por todos os veículos (saindo e voltando ao Hospital Central).
-    2. `priority_penalty`: Penaliza entregas Críticas (prioridade 3) e Urgentes (prioridade 2) que demoram
-       para ser atendidas. Quanto maior a distância acumulada do veículo até chegar a um ponto crítico/urgente,
-       maior a penalidade. Isso faz o Algoritmo Genético priorizar hospitais/pacientes críticos no início da rota!
-    3. `capacity_penalty`: Penalidade pesada caso algum veículo exceda `vehicle_capacity_kg`.
-    4. `autonomy_penalty`: Penalidade pesada caso algum veículo exceda `vehicle_max_distance`.
+    Avalia uma rota completa considerando:
+    - Distância total percorrida pela frota;
+    - Penalidade de prioridade (entregas críticas e urgentes devem ser visitadas no início das sub-rotas);
+    - Penalidade de excesso de carga (comparado ao limite individual de cada veículo);
+    - Penalidade de excesso de autonomia (comparado à autonomia individual de cada veículo).
     """
-    # Modo de compatibilidade simples caso `path` seja apenas uma lista de tuplas (x, y) sem depósito
     if depot is None or (len(path) > 0 and not isinstance(path[0], DeliveryPoint)):
         distance = 0.0
         n = len(path)
@@ -383,13 +405,13 @@ def evaluate_solution_details(
             "routes": []
         }
 
-    # Divide o cromossomo nas sub-rotas dos veículos disponíveis
     routes = split_route_into_vehicles(
         chromosome=path,
         depot=depot,
         max_vehicles=max_vehicles,
         vehicle_capacity_kg=vehicle_capacity_kg,
-        vehicle_max_distance=vehicle_max_distance
+        vehicle_max_distance=vehicle_max_distance,
+        vehicles_specs=vehicles_specs
     )
 
     total_distance = 0.0
@@ -402,8 +424,6 @@ def evaluate_solution_details(
         capacity_penalty += route["capacity_exceeded"] * capacity_penalty_weight
         autonomy_penalty += route["autonomy_exceeded"] * autonomy_penalty_weight
 
-        # Calcula a penalidade de prioridade ao longo da viagem deste veículo
-        # Entregas críticas devem ser as primeiras paradas após sair do Hospital Central!
         cumulative_dist = 0.0
         prev_point = depot
         for stop_index, stop in enumerate(route["stops"], start=1):
@@ -411,10 +431,8 @@ def evaluate_solution_details(
             prev_point = stop
 
             if stop.priority == PRIORITY_CRITICAL:
-                # Peso elevado para entregas críticas: penaliza tanto a distância acumulada quanto a posição tardia
                 priority_penalty += (cumulative_dist * 1.2 + (stop_index - 1) * 45.0) * priority_penalty_weight
             elif stop.priority == PRIORITY_URGENT:
-                # Peso intermediário para entregas urgentes
                 priority_penalty += (cumulative_dist * 0.4 + (stop_index - 1) * 15.0) * priority_penalty_weight
 
     total_fitness = total_distance + priority_penalty + capacity_penalty + autonomy_penalty
@@ -436,24 +454,23 @@ def calculate_fitness(
     depot: DeliveryPoint = None,
     max_vehicles: int = 3,
     vehicle_capacity_kg: float = 85.0,
-    vehicle_max_distance: float = 950.0
+    vehicle_max_distance: float = 950.0,
+    vehicles_specs: Optional[List[Dict[str, Any]]] = None
 ) -> float:
-    """
-    Função principal de Fitness chamada pelo loop do Algoritmo Genético.
-    Retorna um único número float representando o custo total da solução (menor = melhor).
-    """
+    """Retorna apenas o valor escalar do Fitness (menor = melhor)."""
     details = evaluate_solution_details(
         path=path,
         depot=depot,
         max_vehicles=max_vehicles,
         vehicle_capacity_kg=vehicle_capacity_kg,
-        vehicle_max_distance=vehicle_max_distance
+        vehicle_max_distance=vehicle_max_distance,
+        vehicles_specs=vehicles_specs
     )
     return details["fitness"]
 
 
 # ==============================================================================
-# 4. INICIALIZAÇÃO DA POPULAÇÃO (ALEATÓRIA + HEURÍSTICA NEAREST NEIGHBOR)
+# 4. INICIALIZAÇÃO E OPERADORES DO ALGORITMO GENÉTICO
 # ==============================================================================
 
 def create_nearest_neighbor_individual(
@@ -462,11 +479,8 @@ def create_nearest_neighbor_individual(
     prioritize_critical: bool = True
 ) -> List[DeliveryPoint]:
     """
-    Implementa a heurística do Vizinho Mais Próximo (Nearest Neighbor) combinada com
-    prioridade médica (resolvendo o TODO deixado no `tsp.py` original!).
-
-    Quando `prioritize_critical=True`, o construtor busca pontos que sejam próximos
-    e tenham alta prioridade médica, gerando um indivíduo inicial de boa qualidade.
+    Constrói um indivíduo inicial usando a heurística do Vizinho Mais Próximo (Nearest Neighbor)
+    ponderada opcionalmente pela prioridade médica.
     """
     unvisited = list(deliveries)
     individual = []
@@ -476,7 +490,6 @@ def create_nearest_neighbor_individual(
         def score_candidate(candidate: DeliveryPoint) -> float:
             dist = calculate_distance(current, candidate)
             if prioritize_critical and isinstance(candidate, DeliveryPoint):
-                # Reduz a "distância percebida" de itens críticos para que sejam escolhidos antes
                 priority_factor = 1.0 / (candidate.priority ** 0.8)
                 return dist * priority_factor
             return dist
@@ -496,65 +509,42 @@ def generate_random_population(
     use_heuristic_seed: bool = True
 ) -> List[List[Any]]:
     """
-    Gera a população inicial de rotas.
-    Por padrão, 95% da população é gerada de forma totalmente aleatória (garantindo diversidade genética)
-    e até 5% (ou 2 indivíduos) utilizam a heurística Nearest Neighbor para acelerar a convergência inicial.
+    Gera a população inicial de rotas (aleatória ou semeada com Nearest Neighbor).
     """
     population = []
 
-    # Se solicitado e estivermos trabalhando com DeliveryPoints, injeta sementes heurísticas
     if use_heuristic_seed and len(cities_location) >= 2 and isinstance(cities_location[0], DeliveryPoint):
-        # Indivíduo 1: Vizinho mais próximo considerando prioridade crítica
         population.append(create_nearest_neighbor_individual(cities_location, depot, prioritize_critical=True))
         if population_size > 2:
-            # Indivíduo 2: Vizinho mais próximo puramente por distância
             population.append(create_nearest_neighbor_individual(cities_location, depot, prioritize_critical=False))
 
-    # Preenche o restante da população com permutações aleatórias
     while len(population) < population_size:
         population.append(random.sample(cities_location, len(cities_location)))
 
     return population
 
 
-# ==============================================================================
-# 5. OPERADORES GENÉTICOS: SELEÇÃO, CROSSOVER (OX) E MUTAÇÃO (SWAP + INVERSÃO)
-# ==============================================================================
-
 def tournament_selection(
     population: List[List[Any]],
     fitness_values: List[float],
     tournament_size: int = 4
 ) -> List[Any]:
-    """
-    Operador de Seleção por Torneio:
-    Sorteia `tournament_size` indivíduos aleatoriamente da população e retorna aquele
-    que possuir o menor (melhor) Fitness. É muito eficiente porque evita que um único
-    super-indivíduo domine toda a roleta precocemente.
-    """
+    """Seleção por Torneio: escolhe o melhor indivíduo dentre `tournament_size` sorteados."""
     indices = random.sample(range(len(population)), min(tournament_size, len(population)))
     best_idx = min(indices, key=lambda idx: fitness_values[idx])
     return population[best_idx]
 
 
 def order_crossover(parent1: List[Any], parent2: List[Any]) -> List[Any]:
-    """
-    Realiza o cruzamento Order Crossover (OX) entre dois pais para gerar um filho válido.
-    O OX é ideal para problemas de roteamento (TSP/VRP) porque preserva a ordem relativa
-    das paradas e garante que nenhuma unidade de saúde seja visitada duas vezes ou esquecida.
-    """
+    """Operador Order Crossover (OX) que preserva permutações válidas sem repetição."""
     length = len(parent1)
     if length < 2:
         return copy.deepcopy(parent1)
 
-    # Escolhe dois índices aleatórios que definem o segmento herdado do Pai 1
     start_index = random.randint(0, length - 1)
     end_index = random.randint(start_index + 1, length)
 
-    # Inicializa o filho com a subsequência contínua do Pai 1
     child = parent1[start_index:end_index]
-
-    # Preenche as posições restantes mantendo a ordem em que os genes aparecem no Pai 2
     remaining_positions = [i for i in range(length) if i < start_index or i >= end_index]
     remaining_genes = [gene for gene in parent2 if gene not in child]
 
@@ -570,15 +560,10 @@ def mutate(
     mutation_intensity: int = 1
 ) -> List[Any]:
     """
-    Operador de Mutação Especializado para Roteamento (resolve o TODO do código original!).
-
-    Implementa dois tipos complementares de mutação quando `random.random() < mutation_probability`:
-    1. **Inversão de Segmento (2-opt / Inversion Mutation)**: Escolhe dois pontos da rota e inverte
-       a ordem de todas as paradas entre eles. É excelente para "descruzar" linhas no mapa!
-    2. **Troca de Posições (Swap Mutation)**: Escolhe duas paradas da rota (com destaque para
-       adiantar paradas críticas) e troca suas posições.
-
-    O parâmetro `mutation_intensity` controla quantas operações de mutação são aplicadas.
+    Operador de Mutação Híbrido:
+    - 55%: Inversão de segmento (2-opt) para descruzar arestas;
+    - 30%: Swap entre duas posições aleatórias;
+    - 15%: Avanço de uma entrega crítica para o início da rota.
     """
     mutated_solution = list(solution)
     n = len(mutated_solution)
@@ -591,18 +576,15 @@ def mutate(
             mutation_type = random.random()
 
             if mutation_type < 0.55:
-                # Tipo 1 (55% das vezes): Inversão de segmento (2-opt) para eliminar cruzamentos na rota
                 i = random.randint(0, n - 2)
                 j = random.randint(i + 1, n - 1)
                 mutated_solution[i:j + 1] = reversed(mutated_solution[i:j + 1])
 
             elif mutation_type < 0.85:
-                # Tipo 2 (30% das vezes): Swap geral entre quaisquer duas paradas da rota
                 i, j = random.sample(range(n), 2)
                 mutated_solution[i], mutated_solution[j] = mutated_solution[j], mutated_solution[i]
 
             else:
-                # Tipo 3 (15% das vezes): Mutação guiada por prioridade (puxa um item crítico uma posição para frente)
                 critical_indices = [
                     idx for idx, pt in enumerate(mutated_solution)
                     if isinstance(pt, DeliveryPoint) and pt.priority == PRIORITY_CRITICAL and idx > 0
@@ -625,48 +607,72 @@ def sort_population(
     population: List[List[Any]],
     fitness: List[float]
 ) -> Tuple[List[List[Any]], List[float]]:
-    """
-    Ordena a população em ordem crescente de Fitness (do menor custo/melhor rota para o maior).
-    """
+    """Ordena a população do menor Fitness (melhor solução) para o maior."""
     combined_lists = list(zip(population, fitness))
     sorted_combined_lists = sorted(combined_lists, key=lambda x: x[1])
     sorted_population, sorted_fitness = zip(*sorted_combined_lists)
     return list(sorted_population), list(sorted_fitness)
 
 
-# ==============================================================================
-# BLOCO DE TESTE RÁPIDO VIA TERMINAL (SEM PYGAME)
-# ==============================================================================
-if __name__ == '__main__':
-    print("=== Teste Rápido do Algoritmo Genético Hospitalar (VRP) ===")
-    depot_point, delivery_points = get_hospital_scenario()
+def run_genetic_algorithm(
+    depot: DeliveryPoint,
+    deliveries: List[DeliveryPoint],
+    vehicles_specs: List[Dict[str, Any]],
+    population_size: int = 120,
+    n_generations: int = 160,
+    mutation_probability: float = 0.45,
+    mutation_intensity: int = 1,
+    use_heuristic_seed: bool = True
+) -> Generator[Dict[str, Any], None, None]:
+    """
+    Executa o Algoritmo Genético como um gerador (yield), emitindo o estado a cada geração
+    para permitir visualização em tempo real na interface Web.
+    """
+    population = generate_random_population(
+        cities_location=deliveries,
+        population_size=population_size,
+        depot=depot,
+        use_heuristic_seed=use_heuristic_seed
+    )
 
-    POP_SIZE = 100
-    GENERATIONS = 120
-    MUTATION_PROB = 0.4
+    for gen in range(1, n_generations + 1):
+        pop_fitness = [
+            calculate_fitness(ind, depot=depot, vehicles_specs=vehicles_specs)
+            for ind in population
+        ]
+        population, pop_fitness = sort_population(population, pop_fitness)
 
-    pop = generate_random_population(delivery_points, POP_SIZE, depot=depot_point)
+        best_solution = population[0]
+        second_best = population[1] if len(population) > 1 else population[0]
 
-    for gen in range(1, GENERATIONS + 1):
-        pop_fitness = [calculate_fitness(ind, depot=depot_point) for ind in pop]
-        pop, pop_fitness = sort_population(pop, pop_fitness)
-
-        if gen == 1 or gen % 20 == 0 or gen == GENERATIONS:
-            info = evaluate_solution_details(pop[0], depot=depot_point)
-            print(
-                f"Geração {gen:03d} | Fitness Total: {info['fitness']:.2f} | "
-                f"Distância: {info['total_distance']:.1f} px | "
-                f"Penalidade Prioridade: {info['priority_penalty']:.1f} | "
-                f"Viável: {info['is_feasible']}"
+        if gen == 1 or gen % 2 == 0 or gen == n_generations:
+            eval_details = evaluate_solution_details(
+                path=best_solution,
+                depot=depot,
+                vehicles_specs=vehicles_specs
             )
+            yield {
+                "algorithm_name": "Algoritmo Genético (GA)",
+                "step": gen,
+                "total_steps": n_generations,
+                "done": (gen == n_generations),
+                "eval_details": eval_details,
+                "second_best_coords": [[pt.x, pt.y] for pt in second_best]
+            }
 
-        # Elitismo: preserva os 2 melhores indivíduos intactos
-        new_pop = [pop[0], pop[1]]
-        while len(new_pop) < POP_SIZE:
-            p1 = tournament_selection(pop, pop_fitness, tournament_size=4)
-            p2 = tournament_selection(pop, pop_fitness, tournament_size=4)
-            child = order_crossover(p1, p2)
-            child = mutate(child, MUTATION_PROB, mutation_intensity=1)
-            new_pop.append(child)
+        if gen < n_generations:
+            new_population = [population[0], population[1]] if len(population) > 1 else [population[0]]
+            probability = 1.0 / (np.array(pop_fitness) + 1e-6)
 
-        pop = new_pop
+            while len(new_population) < population_size:
+                if random.random() < 0.7:
+                    p1 = tournament_selection(population, pop_fitness, tournament_size=4)
+                    p2 = tournament_selection(population, pop_fitness, tournament_size=4)
+                else:
+                    p1, p2 = random.choices(population, weights=probability, k=2)
+
+                child = order_crossover(p1, p2)
+                child = mutate(child, mutation_probability, mutation_intensity=mutation_intensity)
+                new_population.append(child)
+
+            population = new_population

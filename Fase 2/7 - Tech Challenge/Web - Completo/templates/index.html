@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Otimização de Rotas Hospitalares (VRP) - Etapas 2 e 3</title>
+    <style>
+        :root {
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #0f172a;
+            --muted: #475569;
+            --border: #cbd5e1;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --danger: #dc2626;
+            --warning: #ea8a00;
+            --success: #16a34a;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            min-height: 100vh;
+        }
+        /* Barra Lateral */
+        .sidebar {
+            width: 390px;
+            background: var(--card);
+            border-right: 1px solid var(--border);
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            overflow-y: auto;
+            max-height: 100vh;
+            position: sticky;
+            top: 0;
+        }
+        .sidebar h1 {
+            font-size: 17px;
+            margin: 0;
+            color: #1e3a8a;
+        }
+        .sidebar p.subtitle {
+            margin: 3px 0 0 0;
+            font-size: 12px;
+            color: var(--muted);
+        }
+        .section-box {
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .section-box h3 {
+            margin: 0 0 10px 0;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #1e293b;
+        }
+        .field {
+            margin-bottom: 9px;
+        }
+        .field:last-child {
+            margin-bottom: 0;
+        }
+        .field label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #1e293b;
+        }
+        .field input[type="number"], .field input[type="text"], .field select {
+            width: 100%;
+            padding: 6px 9px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 13px;
+            background: #fff;
+        }
+        .algo-info-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 11.5px;
+            color: #1e3a8a;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        /* Tabela de veículos individuais na barra lateral */
+        .vehicles-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+            font-size: 12px;
+        }
+        .vehicles-table th {
+            text-align: left;
+            font-size: 11px;
+            color: #475569;
+            padding: 4px;
+            border-bottom: 1px solid #cbd5e1;
+        }
+        .vehicles-table td {
+            padding: 4px 3px;
+        }
+        .vehicles-table input {
+            width: 100%;
+            padding: 5px 6px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .v-badge-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+        .btn {
+            width: 100%;
+            padding: 10px 14px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13.5px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-hover);
+        }
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #1e293b;
+            font-size: 12.5px;
+            padding: 7px 10px;
+            margin-top: 6px;
+        }
+        .btn-secondary:hover:not(:disabled) {
+            background: #cbd5e1;
+        }
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            margin-top: 6px;
+        }
+        .btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+        /* Área Principal */
+        .main-content {
+            flex: 1;
+            padding: 18px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-x: hidden;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+            gap: 12px;
+        }
+        .metric-card {
+            background: var(--card);
+            padding: 12px 14px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+        .metric-card .label {
+            font-size: 11.5px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+        .metric-card .value {
+            font-size: 20px;
+            font-weight: 700;
+            margin-top: 4px;
+            color: var(--text);
+        }
+        .visual-grid {
+            display: grid;
+            grid-template-columns: 1.45fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 1250px) {
+            .visual-grid { grid-template-columns: 1fr; }
+        }
+        .panel-card {
+            background: var(--card);
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 14px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+        .panel-card h2 {
+            margin: 0 0 10px 0;
+            font-size: 14.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        canvas {
+            width: 100%;
+            height: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            background: #f8fafc;
+            display: block;
+        }
+        .legend-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .dot {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.25fr;
+            gap: 16px;
+        }
+        @media (max-width: 1250px) {
+            .bottom-grid { grid-template-columns: 1fr; }
+        }
+        .vehicle-card {
+            border: 1px solid #e2e8f0;
+            border-left: 5px solid var(--primary);
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            background: #f8fafc;
+        }
+        .vehicle-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 700;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+        .stops-list {
+            margin: 0;
+            padding-left: 18px;
+            font-size: 12px;
+            color: #334155;
+            line-height: 1.5;
+        }
+        .prio-tag {
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            color: white;
+            font-weight: 600;
+            margin-left: 4px;
+            white-space: nowrap;
+        }
+        /* Tabela da Lista de Pontos e Detalhes */
+        .points-list-wrapper {
+            max-height: 390px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+        }
+        .points-detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .points-detail-table th {
+            position: sticky;
+            top: 0;
+            background: #f1f5f9;
+            color: #334155;
+            font-weight: 700;
+            text-align: left;
+            padding: 8px 10px;
+            border-bottom: 1px solid #cbd5e1;
+            z-index: 1;
+        }
+        .points-detail-table td {
+            padding: 7px 10px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #1e293b;
+            vertical-align: middle;
+        }
+        .points-detail-table tr:hover {
+            background: #f8fafc;
+        }
+        /* Modal de Edição de Coordenadas */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-box {
+            background: white;
+            width: 100%;
+            max-width: 780px;
+            max-height: 85vh;
+            border-radius: 10px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .modal-body {
+            overflow-y: auto;
+            flex: 1;
+        }
+        .coords-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5px;
+        }
+        .coords-table th, .coords-table td {
+            padding: 6px;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: left;
+        }
+        .coords-table input, .coords-table select {
+            width: 100%;
+            padding: 5px 7px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- BARRA LATERAL DE CONFIGURAÇÃO -->
+    <aside class="sidebar">
+        <div>
+            <h1>Logística Hospitalar (VRP)</h1>
+            <p class="subtitle">Etapas 2 e 3: Frota Individual + Múltiplos Algoritmos</p>
+        </div>
+
+        <!-- 1. Cenário de Entregas e Coordenadas -->
+        <div class="section-box">
+            <h3>1. Cenário e Coordenadas</h3>
+            <div class="field">
+                <label for="scenarioMode">Origem dos Pontos</label>
+                <select id="scenarioMode" onchange="toggleRandomCount()">
+                    <option value="predefined">Hospitalar Padrão (14 unidades)</option>
+                    <option value="random">Sortear Coordenadas Aleatórias</option>
+                </select>
+            </div>
+            <div class="field" id="randomCountField" style="display: none;">
+                <label for="nDeliveries">Quantidade de Pontos</label>
+                <input type="number" id="nDeliveries" value="14" min="4" max="35">
+            </div>
+            <button class="btn btn-secondary" id="btnScenario" onclick="loadScenario()">
+                🔄 Carregar / Sortear Pontos
+            </button>
+            <button class="btn btn-secondary" id="btnEditCoords" onclick="openCoordsModal()">
+                ✏️ Editar / Adicionar Coordenadas Manualmente
+            </button>
+        </div>
+
+        <!-- 2. Frota Individual por Veículo (Etapa 2) -->
+        <div class="section-box">
+            <h3>2. Frota de Veículos (Individual)</h3>
+            <div class="field">
+                <label for="numVehiclesInput">Quantidade de Veículos na Frota</label>
+                <input type="number" id="numVehiclesInput" value="3" min="1" max="8" onchange="updateVehicleRows()" oninput="updateVehicleRows()">
+            </div>
+            <table class="vehicles-table">
+                <thead>
+                    <tr>
+                        <th>Veículo</th>
+                        <th>Carga Máx (kg)</th>
+                        <th>Autonomia (px)</th>
+                    </tr>
+                </thead>
+                <tbody id="vehiclesTableBody">
+                    <!-- Linhas geradas dinamicamente via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 3. Pesos de Penalidade da Função Fitness -->
+        <div class="section-box">
+            <h3>3. Penalidades da Função Fitness</h3>
+            <div class="field">
+                <label for="priorityPenaltyWeight" title="Penaliza entregas Críticas/Urgentes deixadas para o fim do trajeto">
+                    <span>Peso Prioridade Médica</span>
+                    <span style="color:#64748b; font-weight:normal;">(padrão: 0.35)</span>
+                </label>
+                <input type="number" id="priorityPenaltyWeight" value="0.35" min="0.0" max="5.0" step="0.05">
+            </div>
+            <div class="field">
+                <label for="capacityPenaltyWeight" title="Multa aplicada para cada 1 kg acima da capacidade máxima do veículo">
+                    <span>Multa Excesso Carga (por kg)</span>
+                    <span style="color:#64748b; font-weight:normal;">(padrão: 40)</span>
+                </label>
+                <input type="number" id="capacityPenaltyWeight" value="40" min="0" max="500" step="5">
+            </div>
+            <div class="field">
+                <label for="autonomyPenaltyWeight" title="Multa aplicada para cada 1 px acima da autonomia máxima do veículo">
+                    <span>Multa Excesso Autonomia (por px)</span>
+                    <span style="color:#64748b; font-weight:normal;">(padrão: 15)</span>
+                </label>
+                <input type="number" id="autonomyPenaltyWeight" value="15" min="0" max="200" step="1">
+            </div>
+        </div>
+
+        <!-- 4. Escolha do Algoritmo / Heurística (Etapa 3) -->
+        <div class="section-box">
+            <h3>4. Algoritmo / Heurística</h3>
+            <div class="field">
+                <label for="algorithmSelect">Método de Otimização</label>
+                <select id="algorithmSelect" onchange="onAlgorithmChange()">
+                    <option value="genetic_algorithm">Algoritmo Genético (GA)</option>
+                    <option value="ant_colony">Ant Colony Optimization (ACO)</option>
+                    <option value="simulated_annealing">Simulated Annealing (Têmpera Simulada)</option>
+                    <option value="nearest_neighbor">Nearest Neighbor (Vizinho Mais Próximo)</option>
+                    <option value="convex_hull">Convex Hull (Envoltória Convexa)</option>
+                </select>
+            </div>
+
+            <div class="algo-info-box" id="algoDescriptionBox">
+                Evolui uma população de rotas usando Seleção por Torneio/Roleta, Order Crossover (OX) e Mutação Híbrida (2-opt + Swap + Prioridade).<br>
+                <b>Arquivo:</b> <code>genetic_algorithm.py</code>
+            </div>
+
+            <!-- Parâmetros específicos do Algoritmo Genético -->
+            <div id="params_genetic_algorithm" class="algo-params-group">
+                <div class="field">
+                    <label for="popSize">Tamanho da População</label>
+                    <input type="number" id="popSize" value="120" min="20" max="300" step="10">
+                </div>
+                <div class="field">
+                    <label for="nGenerations">Número de Gerações</label>
+                    <input type="number" id="nGenerations" value="160" min="20" max="500" step="10">
+                </div>
+                <div class="field">
+                    <label for="mutationProb">Taxa de Mutação (0.05 a 1.0)</label>
+                    <input type="number" id="mutationProb" value="0.45" min="0.05" max="1.0" step="0.05">
+                </div>
+                <div class="field">
+                    <label for="useHeuristicSeed">Inicialização da População</label>
+                    <select id="useHeuristicSeed">
+                        <option value="true">Híbrida (Aleatória + Semente Nearest Neighbor)</option>
+                        <option value="false">100% Aleatória Pura</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Parâmetros específicos do Ant Colony Optimization -->
+            <div id="params_ant_colony" class="algo-params-group" style="display: none;">
+                <div class="field">
+                    <label for="acoAnts">Número de Formigas por Iteração</label>
+                    <input type="number" id="acoAnts" value="35" min="5" max="100" step="5">
+                </div>
+                <div class="field">
+                    <label for="acoIterations">Número de Gerações / Iterações</label>
+                    <input type="number" id="acoIterations" value="80" min="10" max="300" step="10">
+                </div>
+                <div class="field">
+                    <label for="acoAlpha">Peso do Feromônio (Alpha)</label>
+                    <input type="number" id="acoAlpha" value="1.0" min="0.1" max="5.0" step="0.1">
+                </div>
+                <div class="field">
+                    <label for="acoBeta">Peso da Visibilidade/Prioridade (Beta)</label>
+                    <input type="number" id="acoBeta" value="2.5" min="0.5" max="6.0" step="0.5">
+                </div>
+                <div class="field">
+                    <label for="acoEvaporation">Taxa de Evaporação (0.05 a 0.8)</label>
+                    <input type="number" id="acoEvaporation" value="0.15" min="0.05" max="0.8" step="0.05">
+                </div>
+            </div>
+
+            <!-- Parâmetros específicos do Simulated Annealing -->
+            <div id="params_simulated_annealing" class="algo-params-group" style="display: none;">
+                <div class="field">
+                    <label for="saIterations">Número de Gerações / Passos</label>
+                    <input type="number" id="saIterations" value="160" min="20" max="500" step="10">
+                </div>
+                <div class="field">
+                    <label for="saTemp">Temperatura Inicial (T0)</label>
+                    <input type="number" id="saTemp" value="1200" min="100" max="5000" step="100">
+                </div>
+                <div class="field">
+                    <label for="saCooling">Taxa de Resfriamento (Alpha)</label>
+                    <input type="number" id="saCooling" value="0.96" min="0.80" max="0.99" step="0.01">
+                </div>
+            </div>
+
+            <!-- Parâmetros específicos do Nearest Neighbor -->
+            <div id="params_nearest_neighbor" class="algo-params-group" style="display: none;">
+                <div class="field">
+                    <label for="nnGenerations">Número de Gerações / Iterações</label>
+                    <input type="number" id="nnGenerations" value="100" min="10" max="500" step="10">
+                </div>
+                <div class="field">
+                    <label for="nnPriorityWeight">Peso da Prioridade Médica (0.0 a 2.0)</label>
+                    <input type="number" id="nnPriorityWeight" value="0.85" min="0.0" max="2.0" step="0.05">
+                </div>
+                <div class="field">
+                    <label for="nnPerturbation">Taxa de Variação / Exploração (0.05 a 0.9)</label>
+                    <input type="number" id="nnPerturbation" value="0.35" min="0.05" max="0.9" step="0.05">
+                </div>
+                <div class="field">
+                    <label for="nn2opt">Refinamento Pós-Construção</label>
+                    <select id="nn2opt">
+                        <option value="true">Ativar Busca Local 2-opt (Descruzar rotas)</option>
+                        <option value="false">Apenas Construção Gulosa Multi-Start</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Parâmetros específicos do Convex Hull -->
+            <div id="params_convex_hull" class="algo-params-group" style="display: none;">
+                <div class="field">
+                    <label for="chGenerations">Número de Gerações / Iterações</label>
+                    <input type="number" id="chGenerations" value="100" min="10" max="500" step="10">
+                </div>
+                <div class="field">
+                    <label for="chPerturbation">Taxa de Perturbação na Inserção (0.05 a 0.9)</label>
+                    <input type="number" id="chPerturbation" value="0.35" min="0.05" max="0.9" step="0.05">
+                </div>
+                <div class="field">
+                    <label for="chLocal">Refinamento Pós-Inserção</label>
+                    <select id="chLocal">
+                        <option value="true">Ativar Ajuste Local (Prioridade + 2-opt)</option>
+                        <option value="false">Apenas Inserção Geométrica no Fecho</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botões de Execução e Exportação JSON -->
+        <div class="section-box" style="background: #eff6ff; border-color: #bfdbfe;">
+            <h3>5. Execução e Exportação</h3>
+            <button class="btn btn-primary" id="btnStart" onclick="startOptimization()">
+                ▶ Executar Otimização
+            </button>
+            <button class="btn btn-danger" id="btnStop" onclick="stopOptimization()" style="display: none;">
+                ⏹ Parar Execução
+            </button>
+
+            <button class="btn btn-secondary" id="btnGenerateJson" onclick="generateSolutionJson()" disabled style="margin-top: 8px; background: #1e293b; color: #ffffff;">
+                📄 Gerar JSON da Solução
+            </button>
+            <button class="btn btn-secondary" id="btnDownloadJson" onclick="downloadSolutionJson()" style="display: none; margin-top: 6px; background: #16a34a; color: #ffffff;">
+                ⬇️ Baixar JSON da Solução
+            </button>
+            <div id="jsonExportStatus" style="display: none; margin-top: 6px; font-size: 11.5px; color: #15803d; font-weight: 600; text-align: center;"></div>
+        </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL -->
+    <main class="main-content">
+        <!-- Cards Superiores -->
+        <section class="metrics-grid">
+            <div class="metric-card">
+                <div class="label">Método Ativo</div>
+                <div class="value" id="metricAlgo" style="font-size: 14px;">Algoritmo Genético</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">Passo / Geração</div>
+                <div class="value" id="metricGen">0 / -</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">Melhor Fitness (Custo Total)</div>
+                <div class="value" id="metricFitness">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">Distância Total</div>
+                <div class="value" id="metricDist">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">Penalidade Prioridade</div>
+                <div class="value" id="metricPrio">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">Status das Restrições</div>
+                <div class="value" id="metricStatus" style="font-size: 15px;">Aguardando início</div>
+            </div>
+        </section>
+
+        <!-- Painel Duplo: Canvas 2D (Com Setas Direcionais) + Gráfico de Convergência -->
+        <section class="visual-grid">
+            <div class="panel-card">
+                <h2>
+                    <span>Simulação em Tempo Real (Setas indicam a direção do veículo)</span>
+                    <span style="font-size: 11.5px; font-weight: normal; color: #64748b;">Clique no mapa para adicionar um ponto!</span>
+                </h2>
+                <canvas id="routeCanvas" width="660" height="440" style="cursor: crosshair;" title="Clique em qualquer posição para adicionar um novo ponto de entrega"></canvas>
+                <div class="legend-bar">
+                    <div class="legend-item"><span class="dot" style="background:#14285a; border:2px solid #facc15;"></span> Hospital Central (CD)</div>
+                    <div class="legend-item"><span class="dot" style="background:#dc2626;"></span> Crítico (UTI/Emergência)</div>
+                    <div class="legend-item"><span class="dot" style="background:#ea8a00;"></span> Urgente (Refrigerado/UPA)</div>
+                    <div class="legend-item"><span class="dot" style="background:#16a34a;"></span> Regular (Insumos)</div>
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <h2>Curva de Convergência do Fitness</h2>
+                <canvas id="chartCanvas" width="460" height="440"></canvas>
+            </div>
+        </section>
+
+        <!-- Painel Inferior: Rotas por Veículo + Lista Detalhada de Todos os Pontos -->
+        <section class="bottom-grid">
+            <div class="panel-card">
+                <h2>Rotas Otimizadas por Veículo (Com Limites Individuais)</h2>
+                <div id="vehiclesContainer">
+                    <p style="font-size: 13px; color: #64748b;">Configure os veículos na barra lateral e clique em <b>"Executar Otimização"</b>.</p>
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <h2>
+                    <span>Lista de Pontos de Entrega e Detalhes</span>
+                    <span id="pointsCountBadge" style="font-size: 12px; font-weight: normal; color: #64748b;"></span>
+                </h2>
+                <div class="points-list-wrapper">
+                    <table class="points-detail-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Unidade / Paciente</th>
+                                <th>Coord (X, Y)</th>
+                                <th>Carga</th>
+                                <th>Prioridade</th>
+                                <th>Insumo / Medicamento</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pointsDetailTableBody">
+                            <!-- Preenchido dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Painel Etapa 4: Copiloto do Motorista conectado ao Google Gemini -->
+        <section class="panel-card" style="border-top: 4px solid #2563eb;">
+            <h2>
+                <span>🤖 Etapa 4: Central do Motorista & Copiloto de Rota (Google Gemini)</span>
+                <span style="font-size: 11.5px; font-weight: normal; color: #64748b;">Baseado no arquivo <code>melhor_rota_hospitalar.json</code></span>
+            </h2>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; margin-bottom: 12px; align-items: end;">
+                <div class="field" style="margin: 0;">
+                    <label for="driverSelect">Quem está perguntando?</label>
+                    <select id="driverSelect" onchange="resetDriverConversation()">
+                        <option value="all">Coordenador / Todos os Veículos</option>
+                        <option value="1">Motorista — Veículo 1</option>
+                        <option value="2">Motorista — Veículo 2</option>
+                        <option value="3">Motorista — Veículo 3</option>
+                    </select>
+                </div>
+                <div class="field" style="margin: 0;">
+                    <label for="geminiApiKeyInput">
+                        <span>Gemini API Key</span>
+                        <a href="https://aistudio.google.com/apikey" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: normal;">Obter chave no Google AI Studio ↗</a>
+                    </label>
+                    <input type="password" id="geminiApiKeyInput" placeholder="Cole sua chave AIza... (ou use GEMINI_API_KEY no servidor)"
+                        style="width: 100%; padding: 6px 9px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+                </div>
+                <button class="btn btn-secondary" style="width: auto; margin: 0; padding: 8px 12px;" onclick="resetDriverConversation()">
+                    🔄 Limpar Conversa
+                </button>
+            </div>
+
+            <!-- Botões de Perguntas Rápidas para o Motorista -->
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+                <button class="btn btn-secondary" style="width: auto; margin: 0;"
+                    onclick="sendQuickDriverQuestion('Me dê o briefing completo da minha rota, na ordem exata de saída, com o peso e o que devo entregar em cada parada.')">
+                    📋 Briefing completo da minha rota
+                </button>
+                <button class="btn btn-secondary" style="width: auto; margin: 0;"
+                    onclick="sendQuickDriverQuestion('Acabei de sair do Hospital Central. Qual é o meu primeiro destino, quantos quilos vou descarregar lá e qual é o próximo destino depois dele?')">
+                    📍 Qual é meu 1º e 2º destino?
+                </button>
+                <button class="btn btn-secondary" style="width: auto; margin: 0;"
+                    onclick="sendQuickDriverQuestion('Quais são as entregas Críticas (UTI/Emergência) ou Urgentes do meu veículo e quais cuidados especiais de transporte devo ter?')">
+                    🚨 Entregas Críticas (UTI) e Cuidados
+                </button>
+            </div>
+
+            <!-- Histórico do Chat -->
+            <div id="driverChatHistory" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px; min-height: 170px; max-height: 360px; overflow-y: auto; font-size: 13px; line-height: 1.55; margin-bottom: 10px;">
+                <div style="color: #64748b;">
+                    💡 <b>Como usar:</b> Execute a otimização de rota (e clique em <i>"Gerar JSON da Solução"</i> se desejar salvá-la), selecione o seu veículo acima e faça qualquer pergunta sobre sua rota ou próxima entrega!
+                </div>
+            </div>
+
+            <!-- Barra de Pergunta Livre -->
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="driverQuestionInput"
+                    placeholder="Ex.: Já entreguei na parada 1, qual é o meu próximo destino e o que preciso separar?"
+                    style="flex: 1; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13.5px;"
+                    onkeydown="if(event.key === 'Enter') sendDriverChatMessage()">
+                <button class="btn btn-primary" id="btnSendChat" style="width: auto; padding: 9px 18px;" onclick="sendDriverChatMessage()">
+                    Enviar ao Gemini ➤
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL PARA EDITAR / ADICIONAR COORDENADAS MANUALMENTE -->
+    <div class="modal-backdrop" id="coordsModal">
+        <div class="modal-box">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0;">Editar / Adicionar Pontos de Entrega</h3>
+                <button class="btn btn-secondary" style="width:auto; margin:0;" onclick="closeCoordsModal()">✕ Fechar</button>
+            </div>
+            <p style="margin:0; font-size:12px; color:#475569;">
+                Altere as coordenadas X (460 a 1070), Y (40 a 560), o peso da entrega (kg) ou o nível de prioridade de cada ponto:
+            </p>
+            <div class="modal-body">
+                <table class="coords-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nome da Unidade / Paciente</th>
+                            <th style="width:80px;">Coord X</th>
+                            <th style="width:80px;">Coord Y</th>
+                            <th style="width:85px;">Peso (kg)</th>
+                            <th style="width:140px;">Prioridade</th>
+                            <th style="width:45px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="coordsModalBody"></tbody>
+                </table>
+            </div>
+            <div style="display:flex; justify-content:space-between; gap:10px;">
+                <button class="btn btn-secondary" style="width:auto; margin:0;" onclick="addCoordRow()">+ Adicionar Novo Ponto</button>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-secondary" style="width:auto; margin:0;" onclick="closeCoordsModal()">Cancelar</button>
+                    <button class="btn btn-primary" style="width:auto; margin:0;" onclick="saveCustomCoords()">💾 Salvar Pontos</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const VEHICLE_COLORS = ["#2563eb", "#9333ea", "#0891b2", "#db2777", "#65a30d", "#d97706", "#0d9488", "#4f46e5"];
+        const PRIORITY_COLORS = {
+            0: "#14285a",
+            1: "#16a34a",
+            2: "#ea8a00",
+            3: "#dc2626"
+        };
+
+        const ALGO_INFO = {
+            genetic_algorithm: {
+                desc: "Evolui uma população de rotas usando Seleção por Torneio/Roleta, Order Crossover (OX) e Mutação Híbrida (2-opt + Swap + Prioridade).",
+                file: "genetic_algorithm.py"
+            },
+            ant_colony: {
+                desc: "Simula formigas artificiais que constroem rotas guiadas por trilhas de feromônio (tau) e visibilidade ponderada pela urgência médica (eta).",
+                file: "algo_ant_colony.py"
+            },
+            simulated_annealing: {
+                desc: "Meta-heurística inspirada no resfriamento térmico que explora vizinhos 2-opt/Swap e aceita passos probabilísticos para escapar de mínimos locais.",
+                file: "algo_simulated_annealing.py"
+            },
+            nearest_neighbor: {
+                desc: "Heurística construtiva Multi-Start que escolhe a entrega viável mais próxima ponderada pela prioridade médica e refina com 2-opt ao longo das gerações.",
+                file: "algo_nearest_neighbor.py"
+            },
+            convex_hull: {
+                desc: "Heurística geométrica que parte do fecho convexo externo (polígono envolvente) e evolui a ordem de inserção dos pontos internos e busca local por gerações.",
+                file: "algo_convex_hull.py"
+            }
+        };
+
+        let vehiclesConfig = [
+            { vehicle_id: 1, name: "Veículo 1", capacity_kg: 85, max_distance: 950 },
+            { vehicle_id: 2, name: "Veículo 2", capacity_kg: 85, max_distance: 950 },
+            { vehicle_id: 3, name: "Veículo 3", capacity_kg: 85, max_distance: 950 }
+        ];
+
+        let currentDepot = null;
+        let currentDeliveries = [];
+        let eventSource = null;
+        let fitnessHistory = [];
+        let lastSolutionPayload = null;
+
+        // =====================================================================
+        // ETAPA 2: GERENCIAMENTO DE LINHAS INDIVIDUAIS DE VEÍCULOS
+        // =====================================================================
+        function updateVehicleRows() {
+            const countInput = document.getElementById("numVehiclesInput");
+            let count = parseInt(countInput.value || "3", 10);
+            count = Math.max(1, Math.min(8, count));
+
+            while (vehiclesConfig.length < count) {
+                const nextId = vehiclesConfig.length + 1;
+                vehiclesConfig.push({
+                    vehicle_id: nextId,
+                    name: `Veículo ${nextId}`,
+                    capacity_kg: 85,
+                    max_distance: 950
+                });
+            }
+            if (vehiclesConfig.length > count) {
+                vehiclesConfig = vehiclesConfig.slice(0, count);
+            }
+
+            const tbody = document.getElementById("vehiclesTableBody");
+            tbody.innerHTML = vehiclesConfig.map((v, idx) => {
+                const color = VEHICLE_COLORS[idx % VEHICLE_COLORS.length];
+                return `
+                    <tr>
+                        <td style="font-weight:600; white-space:nowrap;">
+                            <span class="v-badge-dot" style="background:${color}"></span>V${v.vehicle_id}
+                        </td>
+                        <td>
+                            <input type="number" value="${v.capacity_kg}" min="10" max="500" step="5"
+                                onchange="onVehicleSpecEdit(${idx}, 'capacity_kg', this.value)">
+                        </td>
+                        <td>
+                            <input type="number" value="${v.max_distance}" min="200" max="4000" step="50"
+                                onchange="onVehicleSpecEdit(${idx}, 'max_distance', this.value)">
+                        </td>
+                    </tr>
+                `;
+            }).join("");
+            if (typeof updateDriverSelectOptions === "function") {
+                updateDriverSelectOptions();
+            }
+        }
+
+        function onVehicleSpecEdit(index, field, value) {
+            if (vehiclesConfig[index]) {
+                vehiclesConfig[index][field] = parseFloat(value) || 50;
+                if (typeof updateDriverSelectOptions === "function") {
+                    updateDriverSelectOptions();
+                }
+            }
+        }
+
+        // =====================================================================
+        // ETAPA 3: ALTERNÂNCIA DE ALGORITMOS E PARÂMETROS NA BARRA LATERAL
+        // =====================================================================
+        function onAlgorithmChange() {
+            const selected = document.getElementById("algorithmSelect").value;
+            const info = ALGO_INFO[selected];
+            document.getElementById("algoDescriptionBox").innerHTML =
+                `${info.desc}<br><b>Arquivo:</b> <code>${info.file}</code>`;
+
+            document.querySelectorAll(".algo-params-group").forEach(el => {
+                el.style.display = "none";
+            });
+            const targetGroup = document.getElementById(`params_${selected}`);
+            if (targetGroup) {
+                targetGroup.style.display = "block";
+            }
+        }
+
+        function toggleRandomCount() {
+            const mode = document.getElementById("scenarioMode").value;
+            document.getElementById("randomCountField").style.display = (mode === "random") ? "block" : "none";
+        }
+
+        // =====================================================================
+        // CARREGAMENTO, LISTA DETALHADA E EDIÇÃO DE PONTOS DE ENTREGA
+        // =====================================================================
+        async function loadScenario() {
+            stopOptimization();
+            const mode = document.getElementById("scenarioMode").value;
+            const nDeliveries = parseInt(document.getElementById("nDeliveries").value || "14", 10);
+
+            const res = await fetch("/api/scenario", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mode: mode, n_deliveries: nDeliveries })
+            });
+            const data = await res.json();
+            applyScenarioData(data);
+        }
+
+        function applyScenarioData(data) {
+            currentDepot = data.depot;
+            currentDeliveries = data.deliveries;
+            fitnessHistory = [];
+            lastSolutionPayload = null;
+
+            document.getElementById("btnGenerateJson").disabled = true;
+            document.getElementById("btnDownloadJson").style.display = "none";
+            document.getElementById("jsonExportStatus").style.display = "none";
+
+            drawRouteCanvas(currentDepot, currentDeliveries, [], []);
+            drawChartCanvas([]);
+            renderPointsDetailTable(currentDepot, currentDeliveries);
+            document.getElementById("metricGen").textContent = "0 / -";
+            document.getElementById("metricFitness").textContent = "-";
+            document.getElementById("metricDist").textContent = "-";
+            document.getElementById("metricPrio").textContent = "-";
+            document.getElementById("metricStatus").textContent = `${currentDeliveries.length} entregas prontas`;
+            document.getElementById("metricStatus").style.color = "#475569";
+        }
+
+        function renderPointsDetailTable(depot, deliveries) {
+            const tbody = document.getElementById("pointsDetailTableBody");
+            const totalWeight = deliveries.reduce((acc, pt) => acc + pt.demand_kg, 0);
+            document.getElementById("pointsCountBadge").textContent =
+                `1 Depósito + ${deliveries.length} Entregas (Carga Total: ${totalWeight} kg)`;
+
+            let rowsHtml = "";
+            if (depot) {
+                rowsHtml += `
+                    <tr style="background: #eff6ff; font-weight: 600;">
+                        <td>#0</td>
+                        <td>🏥 ${depot.name}</td>
+                        <td>(${depot.x}, ${depot.y})</td>
+                        <td>0 kg</td>
+                        <td><span class="prio-tag" style="background:#14285a;">Depósito Central</span></td>
+                        <td>${depot.item_description || "Centro de Distribuição"}</td>
+                    </tr>
+                `;
+            }
+
+            deliveries.forEach(pt => {
+                const pColor = PRIORITY_COLORS[pt.priority] || "#16a34a";
+                rowsHtml += `
+                    <tr>
+                        <td><b>#${pt.id}</b></td>
+                        <td>${pt.name}</td>
+                        <td>(${pt.x}, ${pt.y})</td>
+                        <td><b>${pt.demand_kg} kg</b></td>
+                        <td><span class="prio-tag" style="background:${pColor}">${pt.priority_label}</span></td>
+                        <td>${pt.item_description || "-"}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = rowsHtml;
+        }
+
+        function openCoordsModal() {
+            const tbody = document.getElementById("coordsModalBody");
+            tbody.innerHTML = "";
+            currentDeliveries.forEach((pt, idx) => {
+                appendCoordModalRow(idx + 1, pt.name, pt.x, pt.y, pt.demand_kg, pt.priority);
+            });
+            document.getElementById("coordsModal").style.display = "flex";
+        }
+
+        function closeCoordsModal() {
+            document.getElementById("coordsModal").style.display = "none";
+        }
+
+        function appendCoordModalRow(idNum, name, x, y, demand, priority) {
+            const tbody = document.getElementById("coordsModalBody");
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td class="row-idx">#${idNum}</td>
+                <td><input type="text" class="c-name" value="${name}"></td>
+                <td><input type="number" class="c-x" value="${x}" min="460" max="1070"></td>
+                <td><input type="number" class="c-y" value="${y}" min="40" max="560"></td>
+                <td><input type="number" class="c-kg" value="${demand}" min="1" max="200"></td>
+                <td>
+                    <select class="c-prio">
+                        <option value="3" ${priority === 3 ? "selected" : ""}>3 - Crítico (UTI)</option>
+                        <option value="2" ${priority === 2 ? "selected" : ""}>2 - Urgente</option>
+                        <option value="1" ${priority === 1 ? "selected" : ""}>1 - Regular</option>
+                    </select>
+                </td>
+                <td>
+                    <button class="btn btn-secondary" style="margin:0; padding:4px 8px; color:#dc2626;" onclick="this.closest('tr').remove()">✕</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        function addCoordRow() {
+            const count = document.querySelectorAll("#coordsModalBody tr").length + 1;
+            const rx = Math.floor(Math.random() * 540) + 500;
+            const ry = Math.floor(Math.random() * 460) + 60;
+            appendCoordModalRow(count, `Nova Unidade #${count}`, rx, ry, 12, 2);
+        }
+
+        async function saveCustomCoords() {
+            const rows = document.querySelectorAll("#coordsModalBody tr");
+            const customDeliveries = [];
+            rows.forEach((row, idx) => {
+                customDeliveries.push({
+                    id: idx + 1,
+                    name: row.querySelector(".c-name").value,
+                    x: parseInt(row.querySelector(".c-x").value || "700", 10),
+                    y: parseInt(row.querySelector(".c-y").value || "300", 10),
+                    demand_kg: parseFloat(row.querySelector(".c-kg").value || "10"),
+                    priority: parseInt(row.querySelector(".c-prio").value || "1", 10)
+                });
+            });
+
+            if (customDeliveries.length < 2) {
+                alert("Mantenha pelo menos 2 pontos de entrega.");
+                return;
+            }
+
+            const res = await fetch("/api/scenario", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mode: "custom", deliveries: customDeliveries })
+            });
+            const data = await res.json();
+            applyScenarioData(data);
+            closeCoordsModal();
+        }
+
+        // Clique rápido no Canvas para adicionar um novo ponto de entrega
+        document.getElementById("routeCanvas").addEventListener("click", async function(evt) {
+            if (eventSource) return;
+            const canvas = evt.target;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const clickX = (evt.clientX - rect.left) * scaleX;
+            const clickY = (evt.clientY - rect.top) * scaleY;
+
+            const modelX = Math.round(((clickX - 35) / 590) * 630 + 450);
+            const modelY = Math.round(((clickY - 25) / 385) * 540 + 30);
+
+            const nextId = currentDeliveries.length + 1;
+            const updated = [...currentDeliveries, {
+                id: nextId,
+                name: `Ponto Adicionado #${nextId}`,
+                x: modelX,
+                y: modelY,
+                demand_kg: 12,
+                priority: 2
+            }];
+
+            const res = await fetch("/api/scenario", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mode: "custom", deliveries: updated })
+            });
+            const data = await res.json();
+            applyScenarioData(data);
+        });
+
+        // =====================================================================
+        // DESENHO DO CANVAS 2D COM SETAS DIRECIONAIS E GRÁFICO DE CONVERGÊNCIA
+        // =====================================================================
+        function mapCoordX(x) {
+            return ((x - 450) / 630) * 590 + 35;
+        }
+
+        function mapCoordY(y) {
+            return ((y - 30) / 540) * 385 + 25;
+        }
+
+        /**
+         * Desenha uma seta direcional apontando de (x1, y1) para (x2, y2)
+         * posicionada a 58% do trecho para indicar claramente o sentido da viagem!
+         */
+        function drawDirectionArrow(ctx, x1, y1, x2, y2, color) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const segLength = Math.hypot(dx, dy);
+            if (segLength < 18) return; // Evita desenhar seta se os pontos forem colados
+
+            const angle = Math.atan2(dy, dx);
+            // Posição da ponta da seta (58% do caminho entre origem e destino)
+            const tipX = x1 + dx * 0.58;
+            const tipY = y1 + dy * 0.58;
+            const headLen = 10.5;
+            const headAngle = Math.PI / 6.2; // ~29 graus de abertura
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(tipX, tipY);
+            ctx.lineTo(
+                tipX - headLen * Math.cos(angle - headAngle),
+                tipY - headLen * Math.sin(angle - headAngle)
+            );
+            ctx.lineTo(
+                tipX - headLen * Math.cos(angle + headAngle),
+                tipY - headLen * Math.sin(angle + headAngle)
+            );
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = "#ffffff";
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawRouteCanvas(depot, deliveries, routes, secondBestCoords) {
+            const canvas = document.getElementById("routeCanvas");
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Grade sutil
+            ctx.strokeStyle = "#e2e8f0";
+            ctx.lineWidth = 1;
+            for (let gx = 40; gx < canvas.width; gx += 60) {
+                ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, canvas.height); ctx.stroke();
+            }
+            for (let gy = 40; gy < canvas.height; gy += 60) {
+                ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(canvas.width, gy); ctx.stroke();
+            }
+
+            // 2ª melhor rota / rota candidata em cinza claro ao fundo
+            if (secondBestCoords && secondBestCoords.length > 1) {
+                ctx.beginPath();
+                ctx.strokeStyle = "#cbd5e1";
+                ctx.lineWidth = 1.2;
+                secondBestCoords.forEach((pt, i) => {
+                    const cx = mapCoordX(pt[0]);
+                    const cy = mapCoordY(pt[1]);
+                    if (i === 0) ctx.moveTo(cx, cy);
+                    else ctx.lineTo(cx, cy);
+                });
+                ctx.closePath();
+                ctx.stroke();
+            }
+
+            // Rotas dos veículos com SETAS DIRECIONAIS em cada trecho
+            routes.forEach((route, idx) => {
+                const color = VEHICLE_COLORS[idx % VEHICLE_COLORS.length];
+                const path = route.full_path;
+                if (!path || path.length < 2) return;
+
+                ctx.beginPath();
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2.6;
+                path.forEach((pt, i) => {
+                    const cx = mapCoordX(pt.x);
+                    const cy = mapCoordY(pt.y);
+                    if (i === 0) ctx.moveTo(cx, cy);
+                    else ctx.lineTo(cx, cy);
+                });
+                ctx.stroke();
+
+                // Desenha uma seta apontando o sentido da viagem em cada trecho (CD -> 1º -> 2º ... -> CD)
+                for (let i = 0; i < path.length - 1; i++) {
+                    const x1 = mapCoordX(path[i].x);
+                    const y1 = mapCoordY(path[i].y);
+                    const x2 = mapCoordX(path[i + 1].x);
+                    const y2 = mapCoordY(path[i + 1].y);
+                    drawDirectionArrow(ctx, x1, y1, x2, y2, color);
+                }
+
+                // Rótulo da ordem de parada
+                route.stops.forEach((stop, sIdx) => {
+                    const cx = mapCoordX(stop.x);
+                    const cy = mapCoordY(stop.y);
+                    ctx.fillStyle = color;
+                    ctx.font = "bold 11px Segoe UI, Arial";
+                    ctx.fillText(`V${route.vehicle_id}:${sIdx + 1}º`, cx + 11, cy + 12);
+                });
+            });
+
+            // Pontos de entrega
+            deliveries.forEach(pt => {
+                const cx = mapCoordX(pt.x);
+                const cy = mapCoordY(pt.y);
+                const color = PRIORITY_COLORS[pt.priority] || "#16a34a";
+
+                ctx.beginPath();
+                ctx.fillStyle = "#ffffff";
+                ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.fillStyle = color;
+                ctx.arc(cx, cy, 7.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.lineWidth = 1.2;
+                ctx.strokeStyle = "#0f172a";
+                ctx.stroke();
+
+                ctx.fillStyle = "#0f172a";
+                ctx.font = "bold 11px Segoe UI, Arial";
+                ctx.fillText(`#${pt.id} (${pt.demand_kg}kg)`, cx + 10, cy - 3);
+            });
+
+            // Hospital Central
+            if (depot) {
+                const dx = mapCoordX(depot.x);
+                const dy = mapCoordY(depot.y);
+
+                ctx.beginPath();
+                ctx.fillStyle = "#facc15";
+                ctx.arc(dx, dy, 13, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.fillStyle = "#14285a";
+                ctx.arc(dx, dy, 10, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = "#ffffff";
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(dx - 4, dy); ctx.lineTo(dx + 4, dy);
+                ctx.moveTo(dx, dy - 4); ctx.lineTo(dx, dy + 4);
+                ctx.stroke();
+
+                ctx.fillStyle = "#14285a";
+                ctx.font = "bold 11px Segoe UI, Arial";
+                ctx.fillText("HOSPITAL CENTRAL", dx - 52, dy + 24);
+            }
+        }
+
+        function drawChartCanvas(history) {
+            const canvas = document.getElementById("chartCanvas");
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const padLeft = 58, padRight = 20, padTop = 25, padBottom = 40;
+            const w = canvas.width - padLeft - padRight;
+            const h = canvas.height - padTop - padBottom;
+
+            ctx.strokeStyle = "#94a3b8";
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(padLeft, padTop);
+            ctx.lineTo(padLeft, padTop + h);
+            ctx.lineTo(padLeft + w, padTop + h);
+            ctx.stroke();
+
+            ctx.fillStyle = "#475569";
+            ctx.font = "12px Segoe UI, Arial";
+            ctx.fillText("Passo / Geração", padLeft + w / 2 - 40, canvas.height - 10);
+
+            if (!history || history.length === 0) return;
+
+            const minVal = Math.min(...history);
+            const maxVal = Math.max(...history);
+            const range = Math.max(10, maxVal - minVal);
+
+            ctx.font = "11px Segoe UI, Arial";
+            for (let i = 0; i <= 4; i++) {
+                const val = maxVal - (range * (i / 4));
+                const py = padTop + (h * (i / 4));
+                ctx.fillStyle = "#64748b";
+                ctx.fillText(Math.round(val), 8, py + 4);
+
+                ctx.strokeStyle = "#e2e8f0";
+                ctx.beginPath();
+                ctx.moveTo(padLeft, py);
+                ctx.lineTo(padLeft + w, py);
+                ctx.stroke();
+            }
+
+            ctx.beginPath();
+            ctx.strokeStyle = "#2563eb";
+            ctx.lineWidth = 2.4;
+            history.forEach((val, idx) => {
+                const px = padLeft + (idx / Math.max(1, history.length - 1)) * w;
+                const py = padTop + ((maxVal - val) / range) * h;
+                if (idx === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            });
+            ctx.stroke();
+        }
+
+        function renderVehiclesList(routes) {
+            const container = document.getElementById("vehiclesContainer");
+            if (!routes || routes.length === 0) {
+                container.innerHTML = "<p>Nenhuma rota gerada.</p>";
+                return;
+            }
+
+            container.innerHTML = routes.map((r, idx) => {
+                const color = VEHICLE_COLORS[idx % VEHICLE_COLORS.length];
+                const capExceeded = r.capacity_exceeded > 0;
+                const autExceeded = r.autonomy_exceeded > 0;
+
+                const stopsHtml = r.stops.map((s, sIdx) => {
+                    const pColor = PRIORITY_COLORS[s.priority] || "#16a34a";
+                    return `<li>
+                        <b>${sIdx + 1}º</b> — #${s.id} ${s.name} (${s.demand_kg}kg)
+                        <span class="prio-tag" style="background:${pColor}">${s.priority_label}</span>
+                    </li>`;
+                }).join("");
+
+                return `
+                    <div class="vehicle-card" style="border-left-color: ${color}">
+                        <div class="vehicle-header">
+                            <span style="color:${color}">${r.vehicle_name || ('Veículo ' + r.vehicle_id)}</span>
+                            <span>
+                                Carga: <b style="color:${capExceeded ? '#dc2626' : '#0f172a'}">${r.load_kg}/${r.capacity_limit_kg} kg</b> |
+                                Distância: <b style="color:${autExceeded ? '#dc2626' : '#0f172a'}">${r.distance}/${r.autonomy_limit_px} px</b>
+                            </span>
+                        </div>
+                        <ul class="stops-list">${stopsHtml}</ul>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        // =====================================================================
+        // EXECUÇÃO DO STREAMING DO ALGORITMO SELECIONADO
+        // =====================================================================
+        function startOptimization() {
+            stopOptimization();
+            fitnessHistory = [];
+
+            const algorithm = document.getElementById("algorithmSelect").value;
+
+            document.getElementById("btnStart").disabled = true;
+            document.getElementById("btnScenario").disabled = true;
+            document.getElementById("btnEditCoords").disabled = true;
+            document.getElementById("btnStop").style.display = "block";
+            document.getElementById("btnDownloadJson").style.display = "none";
+            document.getElementById("jsonExportStatus").style.display = "none";
+
+            const params = new URLSearchParams({
+                algorithm: algorithm,
+                vehicles_json: JSON.stringify(vehiclesConfig),
+                // Pesos de Penalidade da Função Fitness
+                priority_penalty_weight: document.getElementById("priorityPenaltyWeight").value,
+                capacity_penalty_weight: document.getElementById("capacityPenaltyWeight").value,
+                autonomy_penalty_weight: document.getElementById("autonomyPenaltyWeight").value,
+                // Parâmetros GA
+                population_size: document.getElementById("popSize").value,
+                n_generations: document.getElementById("nGenerations").value,
+                mutation_probability: document.getElementById("mutationProb").value,
+                use_heuristic_seed: document.getElementById("useHeuristicSeed").value,
+                // Parâmetros ACO
+                n_ants: document.getElementById("acoAnts").value,
+                n_iterations: (algorithm === "simulated_annealing")
+                    ? document.getElementById("saIterations").value
+                    : document.getElementById("acoIterations").value,
+                alpha: document.getElementById("acoAlpha").value,
+                beta: document.getElementById("acoBeta").value,
+                evaporation_rate: document.getElementById("acoEvaporation").value,
+                // Parâmetros SA
+                initial_temp: document.getElementById("saTemp").value,
+                cooling_rate: document.getElementById("saCooling").value,
+                // Parâmetros Nearest Neighbor
+                nn_generations: document.getElementById("nnGenerations").value,
+                nn_priority_weight: document.getElementById("nnPriorityWeight").value,
+                nn_perturbation: document.getElementById("nnPerturbation").value,
+                apply_2opt: document.getElementById("nn2opt").value,
+                // Parâmetros Convex Hull
+                ch_generations: document.getElementById("chGenerations").value,
+                ch_perturbation: document.getElementById("chPerturbation").value,
+                apply_local_search: document.getElementById("chLocal").value
+            });
+
+            eventSource = new EventSource(`/api/optimize/stream?${params.toString()}`);
+
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                const ev = data.evaluation;
+
+                lastSolutionPayload = data;
+                document.getElementById("btnGenerateJson").disabled = false;
+
+                fitnessHistory.push(ev.fitness);
+
+                document.getElementById("metricAlgo").textContent = data.algorithm_name;
+                document.getElementById("metricGen").textContent = `${data.generation} / ${data.total_generations}`;
+                document.getElementById("metricFitness").textContent = ev.fitness.toFixed(1);
+                document.getElementById("metricDist").textContent = `${ev.total_distance.toFixed(0)} px`;
+                document.getElementById("metricPrio").textContent = ev.priority_penalty.toFixed(1);
+
+                const statusEl = document.getElementById("metricStatus");
+                if (ev.is_feasible) {
+                    statusEl.textContent = "✓ Viável (Limites OK)";
+                    statusEl.style.color = "#16a34a";
+                } else {
+                    statusEl.textContent = "⚠ Excesso de Carga/Dist.";
+                    statusEl.style.color = "#dc2626";
+                }
+
+                drawRouteCanvas(ev.depot, currentDeliveries, ev.routes, data.second_best_coords);
+                drawChartCanvas(fitnessHistory);
+                renderVehiclesList(ev.routes);
+
+                if (data.done) {
+                    stopOptimization();
+                }
+            };
+
+            eventSource.onerror = function() {
+                stopOptimization();
+            };
+        }
+
+        function stopOptimization() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+            document.getElementById("btnStart").disabled = false;
+            document.getElementById("btnScenario").disabled = false;
+            document.getElementById("btnEditCoords").disabled = false;
+            document.getElementById("btnStop").style.display = "none";
+        }
+
+        // =====================================================================
+        // GERAÇÃO E DOWNLOAD DO ARQUIVO JSON DA SOLUÇÃO
+        // =====================================================================
+        async function generateSolutionJson() {
+            if (!lastSolutionPayload) {
+                alert("Execute a otimização primeiro para encontrar uma solução!");
+                return;
+            }
+
+            const btnGen = document.getElementById("btnGenerateJson");
+            const statusBox = document.getElementById("jsonExportStatus");
+            btnGen.disabled = true;
+            btnGen.textContent = "⏳ Gerando JSON...";
+
+            try {
+                const res = await fetch("/api/solution/generate-json", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ solution: lastSolutionPayload })
+                });
+                const result = await res.json();
+
+                if (!res.ok) {
+                    alert(result.error || "Erro ao gerar o arquivo JSON.");
+                } else {
+                    document.getElementById("btnDownloadJson").style.display = "block";
+                    statusBox.textContent = `✓ ${result.file_name} gerado com sucesso!`;
+                    statusBox.style.display = "block";
+                }
+            } catch (err) {
+                alert("Falha de comunicação ao gerar o JSON.");
+            } finally {
+                btnGen.disabled = false;
+                btnGen.textContent = "📄 Gerar JSON da Solução";
+            }
+        }
+
+        function downloadSolutionJson() {
+            window.location.href = "/api/solution/download-json";
+        }
+
+        // =====================================================================
+        // ETAPA 4: COPILOTO DO MOTORISTA CONECTADO AO GOOGLE GEMINI
+        // =====================================================================
+        let previousInteractionId = null;
+
+        function updateDriverSelectOptions() {
+            const driverSelect = document.getElementById("driverSelect");
+            if (!driverSelect) return;
+            const currentVal = driverSelect.value;
+            let html = `<option value="all">Coordenador / Todos os Veículos</option>`;
+            vehiclesConfig.forEach(v => {
+                html += `<option value="${v.vehicle_id}">Motorista — Veículo ${v.vehicle_id} (Máx ${v.capacity_kg}kg)</option>`;
+            });
+            driverSelect.innerHTML = html;
+            if ([...driverSelect.options].some(o => o.value === currentVal)) {
+                driverSelect.value = currentVal;
+            }
+        }
+
+        function resetDriverConversation() {
+            previousInteractionId = null;
+            const driverSelect = document.getElementById("driverSelect");
+            const label = driverSelect.options[driverSelect.selectedIndex]?.text || "Motorista";
+            document.getElementById("driverChatHistory").innerHTML = `
+                <div style="color: #64748b;">
+                    💬 Conversa iniciada para <b>${label}</b>. Pergunte sobre sua rota, próxima parada ou cuidados com medicamentos!
+                </div>
+            `;
+        }
+
+        function sendQuickDriverQuestion(questionText) {
+            document.getElementById("driverQuestionInput").value = questionText;
+            sendDriverChatMessage();
+        }
+
+        function formatMarkdownSimple(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+                .replace(/\n/g, "<br>");
+        }
+
+        async function sendDriverChatMessage() {
+            const inputEl = document.getElementById("driverQuestionInput");
+            const message = inputEl.value.trim();
+            if (!message) return;
+
+            const apiKey = document.getElementById("geminiApiKeyInput").value.trim();
+            if (apiKey) {
+                localStorage.setItem("vrp_gemini_api_key", apiKey);
+            }
+
+            const vehicleId = document.getElementById("driverSelect").value;
+            const chatBox = document.getElementById("driverChatHistory");
+            const btnSend = document.getElementById("btnSendChat");
+
+            // Adiciona a pergunta do motorista no histórico visual
+            chatBox.innerHTML += `
+                <div style="margin-top: 10px; padding: 8px 12px; background: #dbeafe; border-radius: 6px; color: #1e3a8a;">
+                    <b>🧑‍✈️ Motorista:</b> ${formatMarkdownSimple(message)}
+                </div>
+            `;
+            inputEl.value = "";
+            btnSend.disabled = true;
+            btnSend.textContent = "⏳ Consultando Gemini...";
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            try {
+                const res = await fetch("/api/llm/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        message: message,
+                        vehicle_id: vehicleId,
+                        previous_interaction_id: previousInteractionId,
+                        api_key: apiKey
+                    })
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    chatBox.innerHTML += `
+                        <div style="margin-top: 8px; padding: 8px 12px; background: #fee2e2; border-left: 4px solid #dc2626; border-radius: 4px; color: #991b1b;">
+                            <b>⚠ Atenção:</b> ${formatMarkdownSimple(data.error || "Erro ao consultar o Gemini.")}
+                        </div>
+                    `;
+                } else {
+                    previousInteractionId = data.interaction_id;
+                    chatBox.innerHTML += `
+                        <div style="margin-top: 8px; padding: 10px 12px; background: #ffffff; border: 1px solid #cbd5e1; border-left: 4px solid #16a34a; border-radius: 6px; color: #0f172a;">
+                            <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">
+                                🤖 <b>Copiloto Gemini (${data.model})</b>
+                            </div>
+                            <div>${formatMarkdownSimple(data.reply)}</div>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                chatBox.innerHTML += `
+                    <div style="margin-top: 8px; padding: 8px 12px; background: #fee2e2; border-radius: 4px; color: #991b1b;">
+                        <b>⚠ Erro de conexão:</b> Não foi possível contatar o servidor.
+                    </div>
+                `;
+            } finally {
+                btnSend.disabled = false;
+                btnSend.textContent = "Enviar ao Gemini ➤";
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        }
+
+        window.addEventListener("DOMContentLoaded", () => {
+            const savedKey = localStorage.getItem("vrp_gemini_api_key");
+            if (savedKey) {
+                document.getElementById("geminiApiKeyInput").value = savedKey;
+            }
+            updateVehicleRows();
+            updateDriverSelectOptions();
+            onAlgorithmChange();
+            loadScenario();
+        });
+    </script>
+</body>
+</html>

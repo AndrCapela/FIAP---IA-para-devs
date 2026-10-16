@@ -66,7 +66,7 @@ PLOT_X_OFFSET = 450         # Deslocamento horizontal onde começa a área do ma
 USE_PREDEFINED_SCENARIO = True  # True = usa o cenário hospitalar pré-definido; False = gera pontos aleatórios
 N_CITIES = 14                   # Número de pontos de entrega (além do Hospital Central) se for aleatório
 POPULATION_SIZE = 120           # Tamanho da população em cada geração
-N_GENERATIONS = 200             # Limite de gerações (coloque None para rodar infinitamente até apertar 'Q')
+N_GENERATIONS = 100             # Limite de gerações (coloque None para rodar infinitamente até apertar 'Q')
 MUTATION_PROBABILITY = 0.45     # Probabilidade de um novo indivíduo sofrer mutação (45%)
 MUTATION_INTENSITY = 1          # Quantidade de operações de mutação (2-opt / swap) por indivíduo mutado
 ELITISM_COUNT = 2               # Quantidade dos melhores indivíduos preservados intactos a cada geração

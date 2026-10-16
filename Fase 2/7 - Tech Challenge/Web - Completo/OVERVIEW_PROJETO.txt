@@ -1,0 +1,167 @@
+================================================================================
+VISÃO GERAL E DOCUMENTAÇÃO TÉCNICA DO PROJETO (ETAPAS 1, 2 E 3)
+Tech Challenge — Fase 2 | Projeto 2: Otimização de Rotas Hospitalares (VRP)
+================================================================================
+
+1. OBJETIVO E FUNCIONAMENTO GERAL DO SISTEMA
+--------------------------------------------------------------------------------
+O sistema resolve o problema do "Caixeiro Viajante Médico" ampliado para Múltiplos
+Veículos (VRP — Vehicle Routing Problem) para um hospital universitário.
+
+Em vez de apenas encontrar o caminho mais curto entre pontos (como no TSP clássico),
+o sistema distribui medicamentos e insumos partindo de um Hospital Universitário
+Central (Centro de Distribuição / Depósito #0) para diversas unidades de saúde
+(UTIs, Pronto-Socorros, UPAs, UBS) e pacientes domiciliares (Home Care), respeitando
+restrições reais de logística hospitalar:
+
+1) Múltiplos Veículos Heterogêneos:
+   A frota possui N veículos configuráveis, onde CADA veículo possui sua própria
+   capacidade máxima de carga (em kg) e sua própria autonomia máxima de distância
+   (em pixels/km).
+
+2) Prioridades Médicas de Entrega:
+   - Nível 3 — Crítico (UTI / Emergência): Hemoderivados, kits de intubação,
+     quimioterápicos, cilindros de O2. Devem ser entregues nas primeiras paradas.
+   - Nível 2 — Urgente (Refrigerados / UPA): Insulina refrigerada, antibióticos
+     pediátricos, anticoagulantes.
+   - Nível 1 — Regular (Insumos Básicos): Soro fisiológico, luvas, gazes, vacinas
+     de rotina, fraldas hospitalares.
+
+3) Retorno Obrigatório ao Depósito:
+   Todo veículo parte do Hospital Central (#0), atende sua sequência de unidades
+   e retorna ao Hospital Central (#0).
+
+
+2. ORGANIZAÇÃO DAS PASTAS E ARQUITETURA DO CÓDIGO
+--------------------------------------------------------------------------------
+O projeto em `Fase 2\7 - Tech Challenge` está separado em duas pastas:
+
+- `Local - Simples/`:
+  Contém a versão inicial Desktop em Pygame (`tsp.py`, `genetic_algorithm.py`,
+  `draw_functions.py`, `benchmark_att48.py`).
+
+- `Web - Completo/`:
+  Contém a aplicação Web interativa completa das Etapas 1, 2 e 3:
+  * `web_app.py`: Servidor Web (Flask) com Streaming em tempo real (SSE) e rotas
+    para geração (`/api/solution/generate-json`) e download (`/api/solution/download-json`)
+    do arquivo JSON da solução.
+  * `templates/index.html`: Interface Web Interativa (Canvas 2D com setas direcionais,
+    Gráfico de Convergência, Tabela de Pontos, Controles de Penalidade e Botões JSON).
+  * `vrp_core.py`: NÚCLEO VRP COMPARTILHADO que centraliza a estrutura `DeliveryPoint`,
+    os cenários hospitalares, a divisão de rotas por veículo (`split_route_into_vehicles`)
+    e o cálculo da Função Fitness e Penalidades (`evaluate_solution_details`). É consumido
+    igualmente por todos os 5 algoritmos.
+  * `route_optimizer_dispatcher.py`: Orquestrador Principal que recebe os parâmetros
+    (incluindo os pesos de penalidade) e invoca o algoritmo escolhido.
+  * `genetic_algorithm.py`: Contém exclusivamente os operadores evolucionários do
+    Algoritmo Genético (GA).
+  * `algo_ant_colony.py`: Ant Colony Optimization (Colônia de Formigas - ACO).
+  * `algo_simulated_annealing.py`: Simulated Annealing (Têmpera Simulada + 2-opt).
+  * `algo_nearest_neighbor.py`: Nearest Neighbor (Vizinho Mais Próximo Multi-Start + 2-opt).
+  * `algo_convex_hull.py`: Convex Hull (Envoltória Convexa + Inserção).
+  * `melhor_rota_hospitalar.json`: Arquivo JSON gerado quando o usuário clica em
+    "Gerar JSON da Solução" na interface Web (pronto para uso pela LLM na Etapa 4).
+
+
+3. COMO UMA ROTA É DIVIDIDA ENTRE OS VEÍCULOS E AVALIADA (`vrp_core.py`)
+--------------------------------------------------------------------------------
+Toda a regra de negócio hospitalar está centralizada em duas funções dentro de
+`vrp_core.py` (usadas por todos os 5 algoritmos):
+
+3.1. Decodificação de Rota para Múltiplos Veículos (`split_route_into_vehicles`)
+- Qualquer algoritmo trabalha com uma sequência permutada de entregas.
+- O Veículo 1 sai do Hospital Central (#0) e começa a acumular entregas:
+  Antes de visitar o próximo ponto, o sistema verifica:
+  1. Teste de Capacidade: `carga_atual + peso_do_ponto > capacidade_maxima_deste_veiculo`?
+  2. Teste de Autonomia: `distancia_atual + trecho_ate_ponto + retorno_ao_hospital > autonomia_maxima_deste_veiculo`?
+- Se qualquer um dos dois limites for ultrapassado E houver um próximo veículo
+  disponível na frota, o veículo atual retorna ao Hospital Central e o próximo
+  veículo assume a partir dali com seus próprios limites individuais.
+- Se todos os veículos da frota já tiverem sido usados, o último veículo leva os
+  pontos restantes, gerando excesso de carga/autonomia que será penalizado no Fitness.
+
+3.2. Cálculo da Função Fitness e Penalidades Configuráveis na Web (`evaluate_solution_details`)
+O problema é de MINIMIZAÇÃO: quanto MENOR o valor do Fitness, MELHOR é a solução.
+
+Fórmula do Fitness Total:
+  Fitness = Distância Total + Penalidade de Prioridade + Penalidade de Capacidade + Penalidade de Autonomia
+
+Os 3 pesos de penalidade podem ser alterados diretamente na seção "3. Penalidades da
+Função Fitness" na barra lateral da interface Web:
+
+1) Distância Total (`total_distance`):
+   Soma das distâncias euclidianas percorridas por todos os veículos.
+
+2) Penalidade de Prioridade (`priority_penalty`) — Campo Web: "Peso Prioridade Médica" (Padrão: 0.35):
+   Mede o quão tarde uma entrega Crítica (nível 3) ou Urgente (nível 2) foi atendida:
+   - Se Crítica (priority == 3):
+     Penalidade += (distancia_acumulada * 1.2 + (ordem_parada - 1) * 45.0) * priority_penalty_weight
+   - Se Urgente (priority == 2):
+     Penalidade += (distancia_acumulada * 0.4 + (ordem_parada - 1) * 15.0) * priority_penalty_weight
+   - Se Regular (priority == 1):
+     Não gera penalidade de atraso.
+
+3) Penalidade por Excesso de Carga (`capacity_penalty`) — Campo Web: "Multa Excesso Carga (por kg)" (Padrão: 40.0):
+   Penalidade de Capacidade = quilos_excedentes * capacity_penalty_weight
+
+4) Penalidade por Excesso de Autonomia (`autonomy_penalty`) — Campo Web: "Multa Excesso Autonomia (por px)" (Padrão: 15.0):
+   Penalidade de Autonomia = pixels_excedentes * autonomy_penalty_weight
+
+
+4. COMO FUNCIONA CADA UM DOS 5 ALGORITMOS IMPLEMENTADOS
+--------------------------------------------------------------------------------
+4.1. Algoritmo Genético (`genetic_algorithm.py`)
+- População Inicial (Híbrida ou Aleatória), Elitismo dos 2 melhores indivíduos,
+  Seleção por Torneio/Roleta, Cruzamento Order Crossover (OX) e Mutação Híbrida
+  (Inversão 2-opt + Swap + Avanço de Prioridade Crítica).
+
+4.2. Ant Colony Optimization — Colônia de Formigas (`algo_ant_colony.py`)
+- Formigas constroem rotas guiadas pela matriz de feromônio (tau) e pela visibilidade
+  heurística ponderada pela prioridade médica (eta), com evaporação e reforço a cada geração.
+
+4.3. Simulated Annealing — Têmpera Simulada (`algo_simulated_annealing.py`)
+- Explora soluções vizinhas (2-opt e Swap) aceitando movimentos de melhoria ou
+  movimentos probabilísticos de Boltzmann `exp(-delta / T)` conforme a temperatura
+  resfria a cada geração (`T = alpha * T`).
+
+4.4. Nearest Neighbor — Vizinho Mais Próximo Multi-Start + 2-opt (`algo_nearest_neighbor.py`)
+- Escolhe a entrega viável mais próxima ponderada pela urgência médica e evolui ao
+  longo das gerações via Multi-Start (GRASP) combinado com refinamento 2-opt.
+
+4.5. Convex Hull — Envoltória Convexa + Inserção (`algo_convex_hull.py`)
+- Constrói o polígono convexo externo (Monotone Chain) e evolui a ordem de inserção
+  mais barata (Cheapest Insertion) dos pontos internos e busca local por gerações.
+
+
+5. RESUMO DE TODOS OS CONTROLES E EXPORTAÇÃO JSON NA WEB (`http://localhost:5000`)
+--------------------------------------------------------------------------------
+- Seção 1 (Cenário e Coordenadas): Escolhe cenário padrão ou aleatório, edita ou
+  adiciona pontos manualmente (ou clicando direto no mapa de simulação).
+- Seção 2 (Frota de Veículos): Altera a quantidade de veículos (1 a 8) e define a
+  Carga Máxima (kg) e Autonomia (px) individualmente para cada veículo.
+- Seção 3 (Penalidades da Função Fitness): Altera em tempo real o Peso de Prioridade
+  Médica (padrão 0.35), Multa por Excesso de Carga (padrão 40/kg) e Multa por
+  Excesso de Autonomia (padrão 15/px).
+- Seção 4 (Algoritmo / Heurística): Seleciona entre os 5 algoritmos e ajusta seus
+  hiperparâmetros específicos (gerações, população, mutação, formigas, temperatura, etc.).
+- Seção 5 (Execução e Exportação):
+  * "▶ Executar Otimização": Inicia a evolução em tempo real.
+  * "📄 Gerar JSON da Solução": Salva a solução atual em `melhor_rota_hospitalar.json`
+    contendo métricas, pesos de penalidade e rotas detalhadas por veículo.
+  * "⬇️ Baixar JSON da Solução": Habilitado após gerar o JSON, permite ao usuário
+    baixar o arquivo `melhor_rota_hospitalar.json` diretamente pelo navegador.
+
+
+6. ETAPA 4: INTEGRAÇÃO COM GOOGLE GEMINI (`llm_driver_assistant.py`)
+--------------------------------------------------------------------------------
+O módulo `llm_driver_assistant.py` conecta o sistema ao Google Gemini usando o SDK
+oficial `google-genai` (`client.interactions.create` com o modelo `gemini-3.8-flash`):
+
+- Base de Conhecimento (`melhor_rota_hospitalar.json`):
+  Injeta o JSON completo da rota otimizada no `system_instruction`, garantindo que o
+  Gemini responda com precisão sobre a ordem das paradas, pesos em kg, prioridades
+  médicas e cuidados especiais de transporte (cadeia de frio, UTI, cilindro de O2).
+- Memória Multi-Turno (`previous_interaction_id`):
+  Permite que o motorista converse continuamente ("Já entreguei na parada 1, qual é
+  o meu próximo destino?") mantendo o histórico da conversa.
+
