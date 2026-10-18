@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  vrp-hospital-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vrp_hospital_web
+    restart: unless-stopped
+    ports:
+      # Expõe na interface local (127.0.0.1) para que o CloudPanel / Nginx faça o Proxy Reverso com SSL
+      - "127.0.0.1:5000:5000"
+    env_file:
+      - .env
+    environment:
+      - PORT=5000
+    volumes:
+      # Persiste o arquivo JSON de rotas salvas entre reinicializações do container
+      - ./melhor_rota_hospitalar.json:/app/melhor_rota_hospitalar.json

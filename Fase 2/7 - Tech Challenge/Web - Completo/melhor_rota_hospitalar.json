@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-10-16 19:11:41",
+  "generated_at": "2026-10-18 19:53:36",
   "algorithm_key": "genetic_algorithm",
   "algorithm_name": "Algoritmo Genético (GA)",
-  "generation_reached": 10,
-  "total_generations": 10,
+  "generation_reached": 160,
+  "total_generations": 160,
   "depot": {
     "id": 0,
     "name": "Hospital Universitário Central (CD)",
@@ -22,12 +22,12 @@
     "autonomy": 15.0
   },
   "summary": {
-    "fitness": 6898.08,
-    "total_distance_px": 2804.0,
-    "priority_penalty": 1316.9,
-    "capacity_penalty": 720.0,
-    "autonomy_penalty": 2057.2,
-    "is_feasible": false,
+    "fitness": 3534.12,
+    "total_distance_px": 2723.2,
+    "priority_penalty": 810.9,
+    "capacity_penalty": 0.0,
+    "autonomy_penalty": 0.0,
+    "is_feasible": true,
     "active_vehicles": 3
   },
   "routes": [
@@ -36,62 +36,62 @@
       "vehicle_name": "Veículo 1",
       "capacity_limit_kg": 85.0,
       "autonomy_limit_px": 950.0,
-      "load_kg": 63.0,
-      "distance_px": 900.4,
+      "load_kg": 71.0,
+      "distance_px": 879.6,
       "capacity_exceeded_kg": 0.0,
       "autonomy_exceeded_px": 0.0,
       "stops": [
         {
           "sequence_order": 1,
-          "id": 7,
-          "name": "Home Care - Paciente 02 (Pós-Cirúrgico)",
+          "id": 4,
+          "name": "Maternidade Universitária",
           "priority": 2,
           "priority_label": "Urgente",
-          "demand_kg": 6.0,
-          "item_description": "Anticoagulantes e Curativos Especiais",
-          "x": 880,
-          "y": 410,
-          "lat": -23.595,
-          "lon": -46.585
+          "demand_kg": 15.0,
+          "item_description": "Antibióticos Pediátricos e Surfactante",
+          "x": 610,
+          "y": 210,
+          "lat": -23.532,
+          "lon": -46.715
         },
         {
           "sequence_order": 2,
-          "id": 8,
-          "name": "UBS Vila Mariana",
-          "priority": 1,
-          "priority_label": "Regular",
-          "demand_kg": 25.0,
-          "item_description": "Soro Fisiológico, Gazes e Luvas",
-          "x": 790,
-          "y": 490,
-          "lat": -23.618,
-          "lon": -46.635
+          "id": 13,
+          "name": "Home Care - Paciente 03 (Oxigenoterapia)",
+          "priority": 3,
+          "priority_label": "Crítico (UTI/Emergência)",
+          "demand_kg": 15.0,
+          "item_description": "Cilindro Portátil de O2 e Broncodilatadores",
+          "x": 510,
+          "y": 150,
+          "lat": -23.508,
+          "lon": -46.748
         },
         {
           "sequence_order": 3,
-          "id": 14,
-          "name": "Hospital Dia - Geriatria",
-          "priority": 1,
-          "priority_label": "Regular",
-          "demand_kg": 18.0,
-          "item_description": "Fraldas Hospitalares, Soro e Equipo",
-          "x": 1010,
-          "y": 490,
-          "lat": -23.619,
-          "lon": -46.542
+          "id": 6,
+          "name": "UPA Zona Oeste",
+          "priority": 2,
+          "priority_label": "Urgente",
+          "demand_kg": 22.0,
+          "item_description": "Analgésicos Injetáveis e Antitérmicos",
+          "x": 520,
+          "y": 320,
+          "lat": -23.565,
+          "lon": -46.755
         },
         {
           "sequence_order": 4,
-          "id": 11,
-          "name": "Laboratório Central de Análises",
+          "id": 12,
+          "name": "UBS Pinheiros",
           "priority": 1,
           "priority_label": "Regular",
-          "demand_kg": 14.0,
-          "item_description": "Reagentes e Tubos de Coleta",
-          "x": 1020,
-          "y": 360,
-          "lat": -23.575,
-          "lon": -46.535
+          "demand_kg": 19.0,
+          "item_description": "Medicamentos de Uso Contínuo (Hipertensão)",
+          "x": 560,
+          "y": 470,
+          "lat": -23.612,
+          "lon": -46.725
         }
       ]
     },
@@ -100,8 +100,8 @@
       "vehicle_name": "Veículo 2",
       "capacity_limit_kg": 85.0,
       "autonomy_limit_px": 950.0,
-      "load_kg": 49.0,
-      "distance_px": 816.4,
+      "load_kg": 69.0,
+      "distance_px": 937.0,
       "capacity_exceeded_kg": 0.0,
       "autonomy_exceeded_px": 0.0,
       "stops": [
@@ -120,19 +120,6 @@
         },
         {
           "sequence_order": 2,
-          "id": 5,
-          "name": "Home Care - Paciente 01 (Insulina)",
-          "priority": 2,
-          "priority_label": "Urgente",
-          "demand_kg": 5.0,
-          "item_description": "Insulina Glargina Refrigerada",
-          "x": 850,
-          "y": 170,
-          "lat": -23.518,
-          "lon": -46.598
-        },
-        {
-          "sequence_order": 3,
           "id": 10,
           "name": "Ambulatório de Especialidades",
           "priority": 1,
@@ -143,6 +130,19 @@
           "y": 100,
           "lat": -23.492,
           "lon": -46.572
+        },
+        {
+          "sequence_order": 3,
+          "id": 5,
+          "name": "Home Care - Paciente 01 (Insulina)",
+          "priority": 2,
+          "priority_label": "Urgente",
+          "demand_kg": 5.0,
+          "item_description": "Insulina Glargina Refrigerada",
+          "x": 850,
+          "y": 170,
+          "lat": -23.518,
+          "lon": -46.598
         },
         {
           "sequence_order": 4,
@@ -156,21 +156,9 @@
           "y": 110,
           "lat": -23.495,
           "lon": -46.625
-        }
-      ]
-    },
-    {
-      "vehicle_id": 3,
-      "vehicle_name": "Veículo 3",
-      "capacity_limit_kg": 85.0,
-      "autonomy_limit_px": 950.0,
-      "load_kg": 103.0,
-      "distance_px": 1087.1,
-      "capacity_exceeded_kg": 18.0,
-      "autonomy_exceeded_px": 137.1,
-      "stops": [
+        },
         {
-          "sequence_order": 1,
+          "sequence_order": 5,
           "id": 9,
           "name": "UBS Santana",
           "priority": 1,
@@ -181,61 +169,21 @@
           "y": 90,
           "lat": -23.485,
           "lon": -46.685
-        },
+        }
+      ]
+    },
+    {
+      "vehicle_id": 3,
+      "vehicle_name": "Veículo 3",
+      "capacity_limit_kg": 85.0,
+      "autonomy_limit_px": 950.0,
+      "load_kg": 75.0,
+      "distance_px": 906.6,
+      "capacity_exceeded_kg": 0.0,
+      "autonomy_exceeded_px": 0.0,
+      "stops": [
         {
-          "sequence_order": 2,
-          "id": 13,
-          "name": "Home Care - Paciente 03 (Oxigenoterapia)",
-          "priority": 3,
-          "priority_label": "Crítico (UTI/Emergência)",
-          "demand_kg": 15.0,
-          "item_description": "Cilindro Portátil de O2 e Broncodilatadores",
-          "x": 510,
-          "y": 150,
-          "lat": -23.508,
-          "lon": -46.748
-        },
-        {
-          "sequence_order": 3,
-          "id": 4,
-          "name": "Maternidade Universitária",
-          "priority": 2,
-          "priority_label": "Urgente",
-          "demand_kg": 15.0,
-          "item_description": "Antibióticos Pediátricos e Surfactante",
-          "x": 610,
-          "y": 210,
-          "lat": -23.532,
-          "lon": -46.715
-        },
-        {
-          "sequence_order": 4,
-          "id": 6,
-          "name": "UPA Zona Oeste",
-          "priority": 2,
-          "priority_label": "Urgente",
-          "demand_kg": 22.0,
-          "item_description": "Analgésicos Injetáveis e Antitérmicos",
-          "x": 520,
-          "y": 320,
-          "lat": -23.565,
-          "lon": -46.755
-        },
-        {
-          "sequence_order": 5,
-          "id": 12,
-          "name": "UBS Pinheiros",
-          "priority": 1,
-          "priority_label": "Regular",
-          "demand_kg": 19.0,
-          "item_description": "Medicamentos de Uso Contínuo (Hipertensão)",
-          "x": 560,
-          "y": 470,
-          "lat": -23.612,
-          "lon": -46.725
-        },
-        {
-          "sequence_order": 6,
+          "sequence_order": 1,
           "id": 1,
           "name": "UTI Cardio - Anexo Sul",
           "priority": 3,
@@ -246,6 +194,58 @@
           "y": 420,
           "lat": -23.5989,
           "lon": -46.6476
+        },
+        {
+          "sequence_order": 2,
+          "id": 8,
+          "name": "UBS Vila Mariana",
+          "priority": 1,
+          "priority_label": "Regular",
+          "demand_kg": 25.0,
+          "item_description": "Soro Fisiológico, Gazes e Luvas",
+          "x": 790,
+          "y": 490,
+          "lat": -23.618,
+          "lon": -46.635
+        },
+        {
+          "sequence_order": 3,
+          "id": 7,
+          "name": "Home Care - Paciente 02 (Pós-Cirúrgico)",
+          "priority": 2,
+          "priority_label": "Urgente",
+          "demand_kg": 6.0,
+          "item_description": "Anticoagulantes e Curativos Especiais",
+          "x": 880,
+          "y": 410,
+          "lat": -23.595,
+          "lon": -46.585
+        },
+        {
+          "sequence_order": 4,
+          "id": 14,
+          "name": "Hospital Dia - Geriatria",
+          "priority": 1,
+          "priority_label": "Regular",
+          "demand_kg": 18.0,
+          "item_description": "Fraldas Hospitalares, Soro e Equipo",
+          "x": 1010,
+          "y": 490,
+          "lat": -23.619,
+          "lon": -46.542
+        },
+        {
+          "sequence_order": 5,
+          "id": 11,
+          "name": "Laboratório Central de Análises",
+          "priority": 1,
+          "priority_label": "Regular",
+          "demand_kg": 14.0,
+          "item_description": "Reagentes e Tubos de Coleta",
+          "x": 1020,
+          "y": 360,
+          "lat": -23.575,
+          "lon": -46.535
         }
       ]
     }
