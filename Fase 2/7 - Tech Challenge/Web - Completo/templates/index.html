@@ -72,6 +72,7 @@
         .field label {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             font-size: 12px;
             font-weight: 600;
             margin-bottom: 4px;
@@ -84,6 +85,72 @@
             border-radius: 6px;
             font-size: 13px;
             background: #fff;
+        }
+        /* Ícone de ajuda (?) com tooltip explicativo elegante */
+        .help-tip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 14.5px;
+            height: 14.5px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            color: #475569;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: help;
+            margin-left: 4px;
+            position: relative;
+            user-select: none;
+            line-height: 1;
+            vertical-align: middle;
+            transition: background 0.15s, color 0.15s;
+        }
+        .help-tip:hover {
+            background: #2563eb;
+            color: #ffffff;
+        }
+        .help-tip::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: 135%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 6px 9px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: normal;
+            line-height: 1.35;
+            white-space: normal;
+            width: max-content;
+            max-width: 235px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.18s ease, transform 0.18s ease;
+            z-index: 1200;
+            text-align: left;
+        }
+        .help-tip::before {
+            content: '';
+            position: absolute;
+            bottom: 115%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 5px;
+            border-style: solid;
+            border-color: #0f172a transparent transparent transparent;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.18s ease;
+            z-index: 1200;
+        }
+        .help-tip:hover::after,
+        .help-tip:hover::before {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-2px);
         }
         .algo-info-box {
             background: #eff6ff;
@@ -182,6 +249,7 @@
             border-radius: 8px;
             border: 1px solid #e2e8f0;
             box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+            position: relative;
         }
         .metric-card .label {
             font-size: 11.5px;
@@ -194,6 +262,101 @@
             margin-top: 4px;
             color: var(--text);
         }
+        /* Card e Popover Interativo de Penalidades (Hover) */
+        .penalties-card {
+            cursor: pointer;
+            transition: border-color 0.18s, box-shadow 0.18s;
+        }
+        .penalties-card:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+        }
+        .penalties-subtext {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 3px;
+            font-weight: 500;
+        }
+        .penalties-popover {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            width: 310px;
+            background: #0f172a;
+            color: #f8fafc;
+            border-radius: 8px;
+            padding: 12px 14px;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-4px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .penalties-card:hover .penalties-popover {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+        .popover-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #93c5fd;
+        }
+        .popover-badge {
+            background: #1e293b;
+            border: 1px solid #475569;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #f1f5f9;
+            font-family: monospace;
+        }
+        .popover-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            margin-top: 6px;
+        }
+        .popover-row-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #e2e8f0;
+        }
+        .popover-row-val {
+            font-family: monospace;
+            font-weight: 700;
+            font-size: 12.5px;
+        }
+        .popover-desc {
+            font-size: 10.5px;
+            color: #94a3b8;
+            margin-left: 14px;
+            margin-top: 2px;
+            line-height: 1.3;
+        }
+        .popover-divider {
+            height: 1px;
+            background: #334155;
+            margin: 8px 0 6px 0;
+        }
+        .p-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .dot-prio { background: #38bdf8; }
+        .dot-cap { background: #f87171; }
+        .dot-aut { background: #fbbf24; }
         .visual-grid {
             display: grid;
             grid-template-columns: 1.45fr 1fr;
@@ -373,14 +536,18 @@
         <div class="section-box">
             <h3>1. Cenário e Coordenadas</h3>
             <div class="field">
-                <label for="scenarioMode">Origem dos Pontos</label>
+                <label for="scenarioMode">
+                    <span>Origem dos Pontos <span class="help-tip" data-tip="Alterna entre as 14 unidades hospitalares reais de SP ou sortear coordenadas aleatórias." title="Alterna entre as 14 unidades hospitalares reais de SP ou sortear coordenadas aleatórias.">?</span></span>
+                </label>
                 <select id="scenarioMode" onchange="toggleRandomCount()">
                     <option value="predefined">Hospitalar Padrão (14 unidades)</option>
                     <option value="random">Sortear Coordenadas Aleatórias</option>
                 </select>
             </div>
             <div class="field" id="randomCountField" style="display: none;">
-                <label for="nDeliveries">Quantidade de Pontos</label>
+                <label for="nDeliveries">
+                    <span>Quantidade de Pontos <span class="help-tip" data-tip="Número de hospitais, clínicas e UPAs a serem atendidos no trajeto." title="Número de hospitais, clínicas e UPAs a serem atendidos no trajeto.">?</span></span>
+                </label>
                 <input type="number" id="nDeliveries" value="14" min="4" max="35">
             </div>
             <button class="btn btn-secondary" id="btnScenario" onclick="loadScenario()">
@@ -395,7 +562,9 @@
         <div class="section-box">
             <h3>2. Frota de Veículos (Individual)</h3>
             <div class="field">
-                <label for="numVehiclesInput">Quantidade de Veículos na Frota</label>
+                <label for="numVehiclesInput">
+                    <span>Quantidade de Veículos na Frota <span class="help-tip" data-tip="Tamanho da frota. Cada veículo possui sua própria capacidade de carga e autonomia." title="Tamanho da frota. Cada veículo possui sua própria capacidade de carga e autonomia.">?</span></span>
+                </label>
                 <input type="number" id="numVehiclesInput" value="3" min="1" max="8" onchange="updateVehicleRows()" oninput="updateVehicleRows()">
             </div>
             <table class="vehicles-table">
@@ -417,21 +586,21 @@
             <h3>3. Penalidades da Função Fitness</h3>
             <div class="field">
                 <label for="priorityPenaltyWeight" title="Penaliza entregas Críticas/Urgentes deixadas para o fim do trajeto">
-                    <span>Peso Prioridade Médica</span>
+                    <span>Peso Prioridade Médica <span class="help-tip" data-tip="Multiplicador de penalidade caso entregas Críticas (UTI) ou Urgentes sejam atendidas tarde na rota." title="Multiplicador de penalidade caso entregas Críticas (UTI) ou Urgentes sejam atendidas tarde na rota.">?</span></span>
                     <span style="color:#64748b; font-weight:normal;">(padrão: 0.35)</span>
                 </label>
                 <input type="number" id="priorityPenaltyWeight" value="0.35" min="0.0" max="5.0" step="0.05">
             </div>
             <div class="field">
                 <label for="capacityPenaltyWeight" title="Multa aplicada para cada 1 kg acima da capacidade máxima do veículo">
-                    <span>Multa Excesso Carga (por kg)</span>
+                    <span>Multa Excesso Carga (por kg) <span class="help-tip" data-tip="Penalidade somada ao Fitness para cada 1 kg que ultrapassar a capacidade máxima do veículo." title="Penalidade somada ao Fitness para cada 1 kg que ultrapassar a capacidade máxima do veículo.">?</span></span>
                     <span style="color:#64748b; font-weight:normal;">(padrão: 40)</span>
                 </label>
                 <input type="number" id="capacityPenaltyWeight" value="40" min="0" max="500" step="5">
             </div>
             <div class="field">
                 <label for="autonomyPenaltyWeight" title="Multa aplicada para cada 1 px acima da autonomia máxima do veículo">
-                    <span>Multa Excesso Autonomia (por px)</span>
+                    <span>Multa Excesso Autonomia (por px) <span class="help-tip" data-tip="Penalidade somada ao Fitness para cada 1 pixel que ultrapassar a distância máxima da rota." title="Penalidade somada ao Fitness para cada 1 pixel que ultrapassar a distância máxima da rota.">?</span></span>
                     <span style="color:#64748b; font-weight:normal;">(padrão: 15)</span>
                 </label>
                 <input type="number" id="autonomyPenaltyWeight" value="15" min="0" max="200" step="1">
@@ -442,7 +611,9 @@
         <div class="section-box">
             <h3>4. Algoritmo / Heurística</h3>
             <div class="field">
-                <label for="algorithmSelect">Método de Otimização</label>
+                <label for="algorithmSelect">
+                    <span>Método de Otimização <span class="help-tip" data-tip="Escolha qual algoritmo heurístico ou meta-heurístico executará a busca de rotas." title="Escolha qual algoritmo heurístico ou meta-heurístico executará a busca de rotas.">?</span></span>
+                </label>
                 <select id="algorithmSelect" onchange="onAlgorithmChange()">
                     <option value="genetic_algorithm">Algoritmo Genético (GA)</option>
                     <option value="ant_colony">Ant Colony Optimization (ACO)</option>
@@ -460,19 +631,27 @@
             <!-- Parâmetros específicos do Algoritmo Genético -->
             <div id="params_genetic_algorithm" class="algo-params-group">
                 <div class="field">
-                    <label for="popSize">Tamanho da População</label>
+                    <label for="popSize">
+                        <span>Tamanho da População <span class="help-tip" data-tip="Quantidade de rotas candidatas mantidas e combinadas a cada geração." title="Quantidade de rotas candidatas mantidas e combinadas a cada geração.">?</span></span>
+                    </label>
                     <input type="number" id="popSize" value="120" min="20" max="300" step="10">
                 </div>
                 <div class="field">
-                    <label for="nGenerations">Número de Gerações</label>
-                    <input type="number" id="nGenerations" value="160" min="20" max="500" step="10">
+                    <label for="nGenerations">
+                        <span>Número de Gerações <span class="help-tip" data-tip="Ciclos de evolução e melhoria que o algoritmo genético executará." title="Ciclos de evolução e melhoria que o algoritmo genético executará.">?</span></span>
+                    </label>
+                    <input type="number" id="nGenerations" value="160" min="20" max="500" step="10" oninput="drawChartCanvas(fitnessHistory, getTargetGenerations())">
                 </div>
                 <div class="field">
-                    <label for="mutationProb">Taxa de Mutação (0.05 a 1.0)</label>
+                    <label for="mutationProb">
+                        <span>Taxa de Mutação (0.05 a 1.0) <span class="help-tip" data-tip="Probabilidade de aplicar alterações na rota (2-opt, troca de paradas ou prioridades) para evitar ficar preso." title="Probabilidade de aplicar alterações na rota (2-opt, troca de paradas ou prioridades) para evitar ficar preso.">?</span></span>
+                    </label>
                     <input type="number" id="mutationProb" value="0.45" min="0.05" max="1.0" step="0.05">
                 </div>
                 <div class="field">
-                    <label for="useHeuristicSeed">Inicialização da População</label>
+                    <label for="useHeuristicSeed">
+                        <span>Inicialização da População <span class="help-tip" data-tip="Híbrida inclui um indivíduo gerado por Nearest Neighbor para acelerar o início da busca." title="Híbrida inclui um indivíduo gerado por Nearest Neighbor para acelerar o início da busca.">?</span></span>
+                    </label>
                     <select id="useHeuristicSeed">
                         <option value="true">Híbrida (Aleatória + Semente Nearest Neighbor)</option>
                         <option value="false">100% Aleatória Pura</option>
@@ -483,23 +662,33 @@
             <!-- Parâmetros específicos do Ant Colony Optimization -->
             <div id="params_ant_colony" class="algo-params-group" style="display: none;">
                 <div class="field">
-                    <label for="acoAnts">Número de Formigas por Iteração</label>
+                    <label for="acoAnts">
+                        <span>Número de Formigas por Iteração <span class="help-tip" data-tip="Quantas formigas constroem rotas independentes a cada rodada." title="Quantas formigas constroem rotas independentes a cada rodada.">?</span></span>
+                    </label>
                     <input type="number" id="acoAnts" value="35" min="5" max="100" step="5">
                 </div>
                 <div class="field">
-                    <label for="acoIterations">Número de Gerações / Iterações</label>
-                    <input type="number" id="acoIterations" value="80" min="10" max="300" step="10">
+                    <label for="acoIterations">
+                        <span>Número de Gerações / Iterações <span class="help-tip" data-tip="Total de rodadas de exploração e depósito de feromônio pelas formigas." title="Total de rodadas de exploração e depósito de feromônio pelas formigas.">?</span></span>
+                    </label>
+                    <input type="number" id="acoIterations" value="80" min="10" max="300" step="10" oninput="drawChartCanvas(fitnessHistory, getTargetGenerations())">
                 </div>
                 <div class="field">
-                    <label for="acoAlpha">Peso do Feromônio (Alpha)</label>
+                    <label for="acoAlpha">
+                        <span>Peso do Feromônio (Alpha) <span class="help-tip" data-tip="Importância dada às rotas boas percorridas anteriormente (memória coletiva)." title="Importância dada às rotas boas percorridas anteriormente (memória coletiva).">?</span></span>
+                    </label>
                     <input type="number" id="acoAlpha" value="1.0" min="0.1" max="5.0" step="0.1">
                 </div>
                 <div class="field">
-                    <label for="acoBeta">Peso da Visibilidade/Prioridade (Beta)</label>
+                    <label for="acoBeta">
+                        <span>Peso da Visibilidade/Prioridade (Beta) <span class="help-tip" data-tip="Importância dada à proximidade física e urgência médica na escolha da próxima parada." title="Importância dada à proximidade física e urgência médica na escolha da próxima parada.">?</span></span>
+                    </label>
                     <input type="number" id="acoBeta" value="2.5" min="0.5" max="6.0" step="0.5">
                 </div>
                 <div class="field">
-                    <label for="acoEvaporation">Taxa de Evaporação (0.05 a 0.8)</label>
+                    <label for="acoEvaporation">
+                        <span>Taxa de Evaporação (0.05 a 0.8) <span class="help-tip" data-tip="Velocidade em que os rastros antigos somem para permitir descoberta de novos caminhos." title="Velocidade em que os rastros antigos somem para permitir descoberta de novos caminhos.">?</span></span>
+                    </label>
                     <input type="number" id="acoEvaporation" value="0.15" min="0.05" max="0.8" step="0.05">
                 </div>
             </div>
@@ -507,15 +696,21 @@
             <!-- Parâmetros específicos do Simulated Annealing -->
             <div id="params_simulated_annealing" class="algo-params-group" style="display: none;">
                 <div class="field">
-                    <label for="saIterations">Número de Gerações / Passos</label>
-                    <input type="number" id="saIterations" value="160" min="20" max="500" step="10">
+                    <label for="saIterations">
+                        <span>Número de Gerações / Passos <span class="help-tip" data-tip="Quantidade de iterações de teste de novas rotas vizinhas." title="Quantidade de iterações de teste de novas rotas vizinhas.">?</span></span>
+                    </label>
+                    <input type="number" id="saIterations" value="160" min="20" max="500" step="10" oninput="drawChartCanvas(fitnessHistory, getTargetGenerations())">
                 </div>
                 <div class="field">
-                    <label for="saTemp">Temperatura Inicial (T0)</label>
+                    <label for="saTemp">
+                        <span>Temperatura Inicial (T0) <span class="help-tip" data-tip="Nível inicial de aceitação de rotas piores para escapar de ótimos locais." title="Nível inicial de aceitação de rotas piores para escapar de ótimos locais.">?</span></span>
+                    </label>
                     <input type="number" id="saTemp" value="1200" min="100" max="5000" step="100">
                 </div>
                 <div class="field">
-                    <label for="saCooling">Taxa de Resfriamento (Alpha)</label>
+                    <label for="saCooling">
+                        <span>Taxa de Resfriamento (Alpha) <span class="help-tip" data-tip="Fator de redução gradual da temperatura a cada iteração (ex: 0.96)." title="Fator de redução gradual da temperatura a cada iteração (ex: 0.96).">?</span></span>
+                    </label>
                     <input type="number" id="saCooling" value="0.96" min="0.80" max="0.99" step="0.01">
                 </div>
             </div>
@@ -523,19 +718,27 @@
             <!-- Parâmetros específicos do Nearest Neighbor -->
             <div id="params_nearest_neighbor" class="algo-params-group" style="display: none;">
                 <div class="field">
-                    <label for="nnGenerations">Número de Gerações / Iterações</label>
-                    <input type="number" id="nnGenerations" value="100" min="10" max="500" step="10">
+                    <label for="nnGenerations">
+                        <span>Número de Gerações / Iterações <span class="help-tip" data-tip="Número de tentativas partindo de diferentes pontos iniciais (Multi-Start)." title="Número de tentativas partindo de diferentes pontos iniciais (Multi-Start).">?</span></span>
+                    </label>
+                    <input type="number" id="nnGenerations" value="100" min="10" max="500" step="10" oninput="drawChartCanvas(fitnessHistory, getTargetGenerations())">
                 </div>
                 <div class="field">
-                    <label for="nnPriorityWeight">Peso da Prioridade Médica (0.0 a 2.0)</label>
+                    <label for="nnPriorityWeight">
+                        <span>Peso da Prioridade Médica <span class="help-tip" data-tip="Equilíbrio entre escolher a parada mais próxima fisicamente vs. a mais urgente." title="Equilíbrio entre escolher a parada mais próxima fisicamente vs. a mais urgente.">?</span></span>
+                    </label>
                     <input type="number" id="nnPriorityWeight" value="0.85" min="0.0" max="2.0" step="0.05">
                 </div>
                 <div class="field">
-                    <label for="nnPerturbation">Taxa de Variação / Exploração (0.05 a 0.9)</label>
+                    <label for="nnPerturbation">
+                        <span>Taxa de Variação / Exploração <span class="help-tip" data-tip="Probabilidade de testar o 2º ou 3º melhor vizinho para diversificar a rota." title="Probabilidade de testar o 2º ou 3º melhor vizinho para diversificar a rota.">?</span></span>
+                    </label>
                     <input type="number" id="nnPerturbation" value="0.35" min="0.05" max="0.9" step="0.05">
                 </div>
                 <div class="field">
-                    <label for="nn2opt">Refinamento Pós-Construção</label>
+                    <label for="nn2opt">
+                        <span>Refinamento Pós-Construção <span class="help-tip" data-tip="Aplica busca local 2-opt para descruzar segmentos e encurtar a rota final." title="Aplica busca local 2-opt para descruzar segmentos e encurtar a rota final.">?</span></span>
+                    </label>
                     <select id="nn2opt">
                         <option value="true">Ativar Busca Local 2-opt (Descruzar rotas)</option>
                         <option value="false">Apenas Construção Gulosa Multi-Start</option>
@@ -546,15 +749,21 @@
             <!-- Parâmetros específicos do Convex Hull -->
             <div id="params_convex_hull" class="algo-params-group" style="display: none;">
                 <div class="field">
-                    <label for="chGenerations">Número de Gerações / Iterações</label>
-                    <input type="number" id="chGenerations" value="100" min="10" max="500" step="10">
+                    <label for="chGenerations">
+                        <span>Número de Gerações / Iterações <span class="help-tip" data-tip="Número de tentativas de construção geométrica com ordens variadas." title="Número de tentativas de construção geométrica com ordens variadas.">?</span></span>
+                    </label>
+                    <input type="number" id="chGenerations" value="100" min="10" max="500" step="10" oninput="drawChartCanvas(fitnessHistory, getTargetGenerations())">
                 </div>
                 <div class="field">
-                    <label for="chPerturbation">Taxa de Perturbação na Inserção (0.05 a 0.9)</label>
+                    <label for="chPerturbation">
+                        <span>Taxa de Perturbação na Inserção <span class="help-tip" data-tip="Aleatoriedade na ordem de inserção dos pontos internos no contorno do fecho convexo." title="Aleatoriedade na ordem de inserção dos pontos internos no contorno do fecho convexo.">?</span></span>
+                    </label>
                     <input type="number" id="chPerturbation" value="0.35" min="0.05" max="0.9" step="0.05">
                 </div>
                 <div class="field">
-                    <label for="chLocal">Refinamento Pós-Inserção</label>
+                    <label for="chLocal">
+                        <span>Refinamento Pós-Inserção <span class="help-tip" data-tip="Ajusta as paradas para antecipar entregas críticas e descruzar rotas." title="Ajusta as paradas para antecipar entregas críticas e descruzar rotas.">?</span></span>
+                    </label>
                     <select id="chLocal">
                         <option value="true">Ativar Ajuste Local (Prioridade + 2-opt)</option>
                         <option value="false">Apenas Inserção Geométrica no Fecho</option>
@@ -603,9 +812,51 @@
                 <div class="label">Distância Total</div>
                 <div class="value" id="metricDist">-</div>
             </div>
-            <div class="metric-card">
-                <div class="label">Penalidade Prioridade</div>
+            <div class="metric-card penalties-card" id="cardPenalties">
+                <div class="label">
+                    <span>Penalidade Total</span>
+                    <span style="font-size: 11px; color: #2563eb; font-weight: bold;">ℹ️ Ver detalhes</span>
+                </div>
                 <div class="value" id="metricPrio">-</div>
+                <div class="penalties-subtext" id="metricPrioSub">Passe o mouse p/ detalhes</div>
+
+                <!-- Popover flutuante com as 3 penalidades (Prioridade, Carga e Autonomia) -->
+                <div class="penalties-popover">
+                    <div class="popover-header">
+                        <span>Decomposição das Penalidades</span>
+                        <span class="popover-badge" id="popTotalBadge">Total: 0.0</span>
+                    </div>
+                    <div class="popover-row">
+                        <div class="popover-row-label">
+                            <span class="p-dot dot-prio"></span>
+                            <span>Prioridade Médica:</span>
+                        </div>
+                        <span class="popover-row-val" id="popPrioVal" style="color: #38bdf8;">0.0</span>
+                    </div>
+                    <div class="popover-desc">Atraso na entrega de insumos Críticos (UTI) e Urgentes.</div>
+
+                    <div class="popover-divider"></div>
+
+                    <div class="popover-row">
+                        <div class="popover-row-label">
+                            <span class="p-dot dot-cap"></span>
+                            <span>Excesso de Carga:</span>
+                        </div>
+                        <span class="popover-row-val" id="popCapVal" style="color: #4ade80;">0.0 (OK)</span>
+                    </div>
+                    <div class="popover-desc">Multa para kg excedentes da capacidade dos veículos.</div>
+
+                    <div class="popover-divider"></div>
+
+                    <div class="popover-row">
+                        <div class="popover-row-label">
+                            <span class="p-dot dot-aut"></span>
+                            <span>Excesso de Autonomia:</span>
+                        </div>
+                        <span class="popover-row-val" id="popAutVal" style="color: #4ade80;">0.0 (OK)</span>
+                    </div>
+                    <div class="popover-desc">Multa para px excedentes do alcance dos veículos.</div>
+                </div>
             </div>
             <div class="metric-card">
                 <div class="label">Status das Restrições</div>
@@ -688,10 +939,10 @@
                 </div>
                 <div class="field" style="margin: 0;">
                     <label for="geminiApiKeyInput">
-                        <span>Gemini API Key</span>
-                        <a href="https://aistudio.google.com/apikey" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: normal;">Obter chave no Google AI Studio ↗</a>
+                        <span>Gemini API Key (Opcional — já configurada no servidor)</span>
+                        <a href="https://aistudio.google.com/apikey" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: normal;">Google AI Studio ↗</a>
                     </label>
-                    <input type="password" id="geminiApiKeyInput" placeholder="Cole sua chave AIza... (ou use GEMINI_API_KEY no servidor)"
+                    <input type="password" id="geminiApiKeyInput" placeholder="✓ Chave já configurada no servidor (deixe em branco ou cole outra)"
                         style="width: 100%; padding: 6px 9px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
                 </div>
                 <button class="btn btn-secondary" style="width: auto; margin: 0; padding: 8px 12px;" onclick="resetDriverConversation()">
@@ -699,7 +950,7 @@
                 </button>
             </div>
 
-            <!-- Botões de Perguntas Rápidas para o Motorista -->
+            <!-- Botões de Perguntas Rápidas para o Motorista e Gestão Logística -->
             <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
                 <button class="btn btn-secondary" style="width: auto; margin: 0;"
                     onclick="sendQuickDriverQuestion('Me dê o briefing completo da minha rota, na ordem exata de saída, com o peso e o que devo entregar em cada parada.')">
@@ -712,6 +963,14 @@
                 <button class="btn btn-secondary" style="width: auto; margin: 0;"
                     onclick="sendQuickDriverQuestion('Quais são as entregas Críticas (UTI/Emergência) ou Urgentes do meu veículo e quais cuidados especiais de transporte devo ter?')">
                     🚨 Entregas Críticas (UTI) e Cuidados
+                </button>
+                <button class="btn btn-secondary" style="width: auto; margin: 0;"
+                    onclick="sendQuickDriverQuestion('Gere um relatório diário/semanal sobre a eficiência das rotas otimizadas de toda a frota, analisando ocupação de carga, economia de distância/recursos e atendimento às prioridades médicas.')">
+                    📊 Relatório Diário/Semanal de Eficiência
+                </button>
+                <button class="btn btn-secondary" style="width: auto; margin: 0;"
+                    onclick="sendQuickDriverQuestion('Com base nos padrões identificados nas rotas atuais (pesos, distâncias, prioridades e limites da frota), sugira melhorias práticas no processo logístico hospitalar.')">
+                    💡 Sugerir Melhorias no Processo
                 </button>
             </div>
 
@@ -885,6 +1144,9 @@
             if (targetGroup) {
                 targetGroup.style.display = "block";
             }
+            if (typeof drawChartCanvas === "function") {
+                drawChartCanvas(fitnessHistory, getTargetGenerations());
+            }
         }
 
         function toggleRandomCount() {
@@ -920,12 +1182,25 @@
             document.getElementById("jsonExportStatus").style.display = "none";
 
             drawRouteCanvas(currentDepot, currentDeliveries, [], []);
-            drawChartCanvas([]);
+            drawChartCanvas([], getTargetGenerations());
             renderPointsDetailTable(currentDepot, currentDeliveries);
             document.getElementById("metricGen").textContent = "0 / -";
             document.getElementById("metricFitness").textContent = "-";
             document.getElementById("metricDist").textContent = "-";
             document.getElementById("metricPrio").textContent = "-";
+            document.getElementById("metricPrioSub").textContent = "Passe o mouse p/ detalhes";
+            document.getElementById("popPrioVal").textContent = "0.0";
+            const popCapEl = document.getElementById("popCapVal");
+            if (popCapEl) {
+                popCapEl.textContent = "0.0 (✓ OK)";
+                popCapEl.style.color = "#4ade80";
+            }
+            const popAutEl = document.getElementById("popAutVal");
+            if (popAutEl) {
+                popAutEl.textContent = "0.0 (✓ OK)";
+                popAutEl.style.color = "#4ade80";
+            }
+            document.getElementById("popTotalBadge").textContent = "Total: 0.0";
             document.getElementById("metricStatus").textContent = `${currentDeliveries.length} entregas prontas`;
             document.getElementById("metricStatus").style.color = "#475569";
         }
@@ -1237,56 +1512,150 @@
             }
         }
 
-        function drawChartCanvas(history) {
+        function getTargetGenerations() {
+            const algoEl = document.getElementById("algorithmSelect");
+            const algo = algoEl ? algoEl.value : "genetic_algorithm";
+            if (algo === "genetic_algorithm") return parseInt(document.getElementById("nGenerations")?.value, 10) || 160;
+            if (algo === "ant_colony") return parseInt(document.getElementById("acoIterations")?.value, 10) || 80;
+            if (algo === "simulated_annealing") return parseInt(document.getElementById("saIterations")?.value, 10) || 160;
+            if (algo === "nearest_neighbor") return parseInt(document.getElementById("nnGenerations")?.value, 10) || 100;
+            if (algo === "convex_hull") return parseInt(document.getElementById("chGenerations")?.value, 10) || 100;
+            return 100;
+        }
+
+        function drawChartCanvas(history, totalGenerations) {
             const canvas = document.getElementById("chartCanvas");
+            if (!canvas) return;
             const ctx = canvas.getContext("2d");
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            const padLeft = 58, padRight = 20, padTop = 25, padBottom = 40;
+            const padLeft = 60, padRight = 20, padTop = 26, padBottom = 46;
             const w = canvas.width - padLeft - padRight;
             const h = canvas.height - padTop - padBottom;
 
+            const maxGen = totalGenerations || getTargetGenerations();
+
+            // Eixo Y e Eixo X
             ctx.strokeStyle = "#94a3b8";
-            ctx.lineWidth = 1.2;
+            ctx.lineWidth = 1.3;
             ctx.beginPath();
             ctx.moveTo(padLeft, padTop);
             ctx.lineTo(padLeft, padTop + h);
             ctx.lineTo(padLeft + w, padTop + h);
             ctx.stroke();
 
-            ctx.fillStyle = "#475569";
-            ctx.font = "12px Segoe UI, Arial";
-            ctx.fillText("Passo / Geração", padLeft + w / 2 - 40, canvas.height - 10);
+            // Título do Eixo Y (Fitness)
+            ctx.fillStyle = "#334155";
+            ctx.font = "bold 11px Segoe UI, Arial";
+            ctx.textAlign = "left";
+            ctx.fillText("Fitness (Custo)", 6, padTop - 10);
 
-            if (!history || history.length === 0) return;
+            // Escala e Grid do Eixo X (Passo / Geração) com números graduados como no eixo Y
+            ctx.font = "11px Segoe UI, Arial";
+            for (let j = 0; j <= 4; j++) {
+                const fraction = j / 4;
+                const stepVal = Math.round(maxGen * fraction);
+                const px = padLeft + (w * fraction);
 
+                // Linha de grade vertical
+                ctx.strokeStyle = "#e2e8f0";
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(px, padTop);
+                ctx.lineTo(px, padTop + h);
+                ctx.stroke();
+
+                // Marca de tick no eixo X
+                ctx.strokeStyle = "#94a3b8";
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.moveTo(px, padTop + h);
+                ctx.lineTo(px, padTop + h + 5);
+                ctx.stroke();
+
+                // Valor numérico do passo/geração
+                ctx.fillStyle = "#64748b";
+                ctx.textAlign = "center";
+                ctx.fillText(stepVal.toString(), px, padTop + h + 18);
+            }
+
+            // Título do Eixo X centralizado
+            ctx.fillStyle = "#334155";
+            ctx.font = "bold 11.5px Segoe UI, Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("Passo / Geração", padLeft + w / 2, canvas.height - 7);
+            ctx.textAlign = "left";
+
+            // Se ainda não houver histórico, desenha a grade do eixo Y com valores de referência e mensagem
+            if (!history || history.length === 0) {
+                ctx.font = "11px Segoe UI, Arial";
+                ctx.fillStyle = "#94a3b8";
+                ctx.textAlign = "right";
+                for (let i = 0; i <= 4; i++) {
+                    const py = padTop + (h * (i / 4));
+                    ctx.fillText(Math.round(2000 - i * 400).toString(), padLeft - 8, py + 4);
+
+                    ctx.strokeStyle = "#f1f5f9";
+                    ctx.beginPath();
+                    ctx.moveTo(padLeft, py);
+                    ctx.lineTo(padLeft + w, py);
+                    ctx.stroke();
+                }
+                ctx.textAlign = "center";
+                ctx.font = "italic 12px Segoe UI, Arial";
+                ctx.fillStyle = "#94a3b8";
+                ctx.fillText("Aguardando execução da otimização...", padLeft + w / 2, padTop + h / 2);
+                ctx.textAlign = "left";
+                return;
+            }
+
+            // Histórico presente: calcula min e max de Fitness para o eixo Y
             const minVal = Math.min(...history);
             const maxVal = Math.max(...history);
             const range = Math.max(10, maxVal - minVal);
 
+            // Escala e Grid do Eixo Y (Fitness) com números graduados
             ctx.font = "11px Segoe UI, Arial";
             for (let i = 0; i <= 4; i++) {
                 const val = maxVal - (range * (i / 4));
                 const py = padTop + (h * (i / 4));
                 ctx.fillStyle = "#64748b";
-                ctx.fillText(Math.round(val), 8, py + 4);
+                ctx.textAlign = "right";
+                ctx.fillText(Math.round(val).toString(), padLeft - 8, py + 4);
 
                 ctx.strokeStyle = "#e2e8f0";
+                ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(padLeft, py);
                 ctx.lineTo(padLeft + w, py);
                 ctx.stroke();
             }
+            ctx.textAlign = "left";
 
+            // Curva de Convergência do Fitness
             ctx.beginPath();
             ctx.strokeStyle = "#2563eb";
             ctx.lineWidth = 2.4;
+            const scaleDiv = Math.max(maxGen - 1, history.length - 1, 1);
+            let lastPx = padLeft, lastPy = padTop + h;
+
             history.forEach((val, idx) => {
-                const px = padLeft + (idx / Math.max(1, history.length - 1)) * w;
+                const px = padLeft + (idx / scaleDiv) * w;
                 const py = padTop + ((maxVal - val) / range) * h;
+                lastPx = px;
+                lastPy = py;
                 if (idx === 0) ctx.moveTo(px, py);
                 else ctx.lineTo(px, py);
             });
+            ctx.stroke();
+
+            // Ponto destacado no valor mais recente
+            ctx.beginPath();
+            ctx.arc(lastPx, lastPy, 4.5, 0, Math.PI * 2);
+            ctx.fillStyle = "#2563eb";
+            ctx.fill();
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = "#ffffff";
             ctx.stroke();
         }
 
@@ -1390,7 +1759,46 @@
                 document.getElementById("metricGen").textContent = `${data.generation} / ${data.total_generations}`;
                 document.getElementById("metricFitness").textContent = ev.fitness.toFixed(1);
                 document.getElementById("metricDist").textContent = `${ev.total_distance.toFixed(0)} px`;
-                document.getElementById("metricPrio").textContent = ev.priority_penalty.toFixed(1);
+                // Penalidades (Prioridade, Carga e Autonomia)
+                const prioPen = ev.priority_penalty || 0;
+                const capPen = ev.capacity_penalty || 0;
+                const autPen = ev.autonomy_penalty || 0;
+                const totalPen = prioPen + capPen + autPen;
+
+                // Exibe a soma das 3 penalidades no card principal de Penalidade Total
+                document.getElementById("metricPrio").textContent = totalPen.toFixed(1);
+                const prioSubEl = document.getElementById("metricPrioSub");
+                if (prioSubEl) {
+                    prioSubEl.textContent = `Prio: ${prioPen.toFixed(0)} | Carga: ${capPen.toFixed(0)} | Auto: ${autPen.toFixed(0)}`;
+                }
+
+                const popPrioEl = document.getElementById("popPrioVal");
+                if (popPrioEl) popPrioEl.textContent = prioPen.toFixed(1);
+
+                const popCapEl = document.getElementById("popCapVal");
+                if (popCapEl) {
+                    if (capPen > 0) {
+                        popCapEl.textContent = `+${capPen.toFixed(1)} ⚠`;
+                        popCapEl.style.color = "#f87171";
+                    } else {
+                        popCapEl.textContent = "0.0 (✓ OK)";
+                        popCapEl.style.color = "#4ade80";
+                    }
+                }
+
+                const popAutEl = document.getElementById("popAutVal");
+                if (popAutEl) {
+                    if (autPen > 0) {
+                        popAutEl.textContent = `+${autPen.toFixed(1)} ⚠`;
+                        popAutEl.style.color = "#f87171";
+                    } else {
+                        popAutEl.textContent = "0.0 (✓ OK)";
+                        popAutEl.style.color = "#4ade80";
+                    }
+                }
+
+                const popTotEl = document.getElementById("popTotalBadge");
+                if (popTotEl) popTotEl.textContent = `Total: ${totalPen.toFixed(1)}`;
 
                 const statusEl = document.getElementById("metricStatus");
                 if (ev.is_feasible) {
@@ -1402,7 +1810,7 @@
                 }
 
                 drawRouteCanvas(ev.depot, currentDeliveries, ev.routes, data.second_best_coords);
-                drawChartCanvas(fitnessHistory);
+                drawChartCanvas(fitnessHistory, data.total_generations);
                 renderVehiclesList(ev.routes);
 
                 if (data.done) {

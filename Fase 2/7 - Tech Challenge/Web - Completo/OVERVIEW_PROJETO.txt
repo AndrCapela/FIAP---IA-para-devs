@@ -150,18 +150,79 @@ Função Fitness" na barra lateral da interface Web:
     contendo métricas, pesos de penalidade e rotas detalhadas por veículo.
   * "⬇️ Baixar JSON da Solução": Habilitado após gerar o JSON, permite ao usuário
     baixar o arquivo `melhor_rota_hospitalar.json` diretamente pelo navegador.
+  * Ícones "?" de Ajuda Rápida: Tooltips informativos em cada parâmetro com explicações concisas.
+  * Card de Penalidades com Popover (Hover): O card exibe a "Penalidade Total" (soma
+    das 3 penalidades) e, ao passar o mouse, exibe um card flutuante com a decomposição
+    detalhada de cada uma (Prioridade Médica, Excesso de Carga e Excesso de Autonomia).
+  * Gráfico de Convergência com Eixo X Graduado: Exibe números de passo/geração dinâmicos
+    (ex: 0, 40, 80, 120, 160) com linhas de grade sincronizadas com a meta do algoritmo.
 
 
-6. ETAPA 4: INTEGRAÇÃO COM GOOGLE GEMINI (`llm_driver_assistant.py`)
+6. DIAGRAMA DE ARQUITETURA DA SOLUÇÃO COMPLETA
+--------------------------------------------------------------------------------
+  [Navegador Web: templates/index.html]
+     │  (Canvas 2D c/ Setas, Gráfico de Convergência, Tabelas e Chat Gemini)
+     ▼
+  [Servidor Flask: web_app.py]
+     ├──► GET /api/optimize/stream ──► [route_optimizer_dispatcher.py]
+     │                                      ├──► genetic_algorithm.py (GA)
+     │                                      ├──► algo_ant_colony.py (ACO)
+     │                                      ├──► algo_simulated_annealing.py (SA)
+     │                                      ├──► algo_nearest_neighbor.py (NN)
+     │                                      └──► algo_convex_hull.py (CH)
+     │                                               │
+     │                                               ▼
+     │                                     [vrp_core.py (Núcleo VRP)]
+     │                                     (Divisão de Frota + Fitness/Penalidades)
+     │
+     ├──► POST /api/solution/generate-json ──► [melhor_rota_hospitalar.json]
+     └──► POST /api/llm/chat ──────────────► [llm_driver_assistant.py]
+                                                     │
+                                                     ▼
+                                       [Google Gemini Interactions API]
+
+
+7. COMPARATIVO DE DESEMPENHO ENTRE AS 5 ABORDAGENS DE ROTEAMENTO
+--------------------------------------------------------------------------------
+Avaliação no cenário hospitalar padrão (1 Depósito + 14 entregas, 215 kg totais,
+3 veículos com capacidade de 85 kg e autonomia de 950 px):
+
+- Algoritmo Genético (GA): Fitness médio ~1.960 a 2.040 | Excelente exploração
+  global e priorização de entregas Críticas (UTI) nas primeiras paradas.
+- Ant Colony Optimization (ACO): Fitness médio ~1.980 a 2.080 | Aprende boas
+  conexões guiado por feromônio e visibilidade ponderada pela urgência médica.
+- Simulated Annealing (SA): Fitness médio ~1.990 a 2.110 | Muito rápido por passo,
+  escapando de ótimos locais no início da curva de temperatura.
+- Nearest Neighbor + 2-opt (NN): Fitness médio ~1.970 a 2.060 | Encontra uma rota
+  viável forte já na 1ª geração e descruza arestas via busca local 2-opt.
+- Convex Hull + Inserção (CH): Fitness médio ~2.010 a 2.130 | Parte do polígono
+  convexo externo gerando sub-rotas geometricamente limpas.
+
+
+8. ETAPA 4: INTEGRAÇÃO COM GOOGLE GEMINI (`llm_driver_assistant.py`)
 --------------------------------------------------------------------------------
 O módulo `llm_driver_assistant.py` conecta o sistema ao Google Gemini usando o SDK
-oficial `google-genai` (`client.interactions.create` com o modelo `gemini-3.8-flash`):
+oficial `google-genai` (`client.interactions.create` com `gemini-3-flash-preview`):
 
 - Base de Conhecimento (`melhor_rota_hospitalar.json`):
-  Injeta o JSON completo da rota otimizada no `system_instruction`, garantindo que o
-  Gemini responda com precisão sobre a ordem das paradas, pesos em kg, prioridades
-  médicas e cuidados especiais de transporte (cadeia de frio, UTI, cilindro de O2).
+  Injeta o JSON completo da rota otimizada no `system_instruction`.
+- Instruções para Motoristas, Relatórios Diários/Semanais e Sugestões de Melhoria:
+  Além de responder sobre o próximo destino, pesos e cuidados médicos (UTI/refrigerados),
+  possui botões dedicados para gerar Relatórios Diários/Semanais de Eficiência da
+  Frota e Sugestões de Melhoria no Processo Logístico.
 - Memória Multi-Turno (`previous_interaction_id`):
-  Permite que o motorista converse continuamente ("Já entreguei na parada 1, qual é
-  o meu próximo destino?") mantendo o histórico da conversa.
+  Permite que o motorista converse continuamente mantendo o histórico da conversa.
+
+
+9. TESTES AUTOMATIZADOS (`test_vrp_system.py`)
+--------------------------------------------------------------------------------
+O arquivo `test_vrp_system.py` valida automaticamente:
+1) A criação do cenário hospitalar e divisão de rotas entre múltiplos veículos;
+2) O cálculo das penalidades de prioridade, capacidade e autonomia em `vrp_core.py`;
+3) A execução e convergência dos 5 algoritmos no `route_optimizer_dispatcher.py`;
+4) Os endpoints Flask (`web_app.py`), exportação JSON e geração de prompt da LLM.
+
+Comando para rodar os testes:
+  python -m unittest test_vrp_system.py -v
+
 

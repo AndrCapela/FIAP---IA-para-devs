@@ -19,7 +19,40 @@ import json
 from typing import Dict, Any, Optional
 from google import genai
 
-DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
+# Carrega variáveis de ambiente do arquivo .env (caso exista)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+def _load_env_fallback():
+    """Carregador simples de .env para quando python-dotenv não estiver instalado."""
+    for base_dir in [os.path.dirname(os.path.abspath(__file__)), os.getcwd()]:
+        env_path = os.path.join(base_dir, ".env")
+        if os.path.isfile(env_path):
+            try:
+                with open(env_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#") and "=" in line:
+                            k, v = line.split("=", 1)
+                            k, v = k.strip(), v.strip().strip('"').strip("'")
+                            if k and k not in os.environ:
+                                os.environ[k] = v
+            except Exception:
+                pass
+            break
+
+_load_env_fallback()
+
+DEFAULT_GEMINI_MODEL = "gemini-3-flash-preview"
+FALLBACK_GEMINI_MODELS = [
+    "gemini-3-flash-preview",
+    "gemini-3.1-flash-lite-preview",
+    "gemini-3.8-flash",
+    "gemma-4-31b-it"
+]
 
 
 def build_driver_system_instruction(
@@ -41,8 +74,8 @@ def build_driver_system_instruction(
     )
 
     return f"""Você é o Copiloto Inteligente de Logística Hospitalar do Hospital Universitário Central.
-Sua função é orientar os motoristas da frota de distribuição de medicamentos e insumos médicos de forma clara,
-direta, segura e amigável.
+Sua função é orientar os motoristas da frota de distribuição de medicamentos e insumos médicos e também gerar
+relatórios gerenciais de eficiência logística de forma clara, direta, segura e amigável.
 
 REGRAS DE CONDUTA:
 1. Responda SEMPRE em Português do Brasil, utilizando formatação Markdown limpa (listas, negrito para nomes de hospitais, pesos e prioridades).
@@ -51,6 +84,9 @@ REGRAS DE CONDUTA:
    - Indique claramente a ordem da parada (1º, 2º, 3º...), o nome da Unidade/Paciente, o peso a descarregar (em kg), o nível de prioridade (Crítico, Urgente ou Regular) e a descrição do medicamento/insumo.
    - Se o item for Crítico (UTI/Emergência) ou Urgente (ex.: Insulina Refrigerada, Quimioterápicos, Cilindro de O2, Hemoderivados), adicione uma recomendação curta e prática de manuseio/segurança (ex.: manter cadeia de frio, entrega prioritária no balcão da UTI, etc.).
 4. Se o motorista informar que já concluiu determinada parada (ex.: "já entreguei na parada 1"), identifique na sequência do veículo qual é a parada seguinte (parada 2) ou se ele deve retornar ao Hospital Universitário Central (Depósito #0).
+5. Quando solicitado um RELATÓRIO DIÁRIO/SEMANAL DE EFICIÊNCIA ou SUGESTÕES DE MELHORIA NO PROCESSO:
+   - Analise a taxa de ocupação de carga (kg usados vs. limite de cada veículo), o uso da autonomia (distância percorrida vs. limite em px), a viabilidade da rota (`is_feasible`) e o posicionamento das entregas Críticas/Urgentes;
+   - Apresente estimativas de economia de tempo/combustível e sugira melhorias práticas no processo (ex.: redistribuição de carga entre veículos, ajuste de janelas de saída, uso de veículos refrigerados dedicados ou ajuste de capacidades).
 
 CONTEXTO DO MOTORISTA ATUAL:
 {vehicle_focus_text}
@@ -82,8 +118,8 @@ def ask_driver_assistant(
     resolved_key = (api_key or os.environ.get("GEMINI_API_KEY") or "").strip()
     if not resolved_key:
         raise ValueError(
-            "Chave da API do Gemini não informada. Configure a variável de ambiente GEMINI_API_KEY "
-            "ou cole sua chave diretamente no campo 'Gemini API Key' na interface Web."
+            "Chave da API do Gemini não informada. Configure a variável GEMINI_API_KEY no arquivo .env, "
+            "como variável de ambiente ou informe sua chave no campo 'Gemini API Key' na interface Web."
         )
 
     client = genai.Client(api_key=resolved_key)
@@ -92,18 +128,43 @@ def ask_driver_assistant(
         selected_vehicle_id=selected_vehicle_id
     )
 
-    create_kwargs: Dict[str, Any] = {
-        "model": model_name,
-        "system_instruction": system_instruction,
-        "input": user_message,
-    }
-    if previous_interaction_id:
-        create_kwargs["previous_interaction_id"] = previous_interaction_id
+    models_to_try = [model_name] + [m for m in FALLBACK_GEMINI_MODELS if m != model_name]
+    last_error = None
 
-    interaction = client.interactions.create(**create_kwargs)
+    for candidate_model in models_to_try:
+        try:
+            create_kwargs: Dict[str, Any] = {
+                "model": candidate_model,
+                "system_instruction": system_instruction,
+                "input": user_message,
+            }
+            if previous_interaction_id:
+                create_kwargs["previous_interaction_id"] = previous_interaction_id
 
-    return {
-        "reply": interaction.output_text or "Sem resposta gerada pelo modelo.",
-        "interaction_id": interaction.id,
-        "model": model_name
-    }
+            interaction = client.interactions.create(**create_kwargs)
+
+            return {
+                "reply": interaction.output_text or "Sem resposta gerada pelo modelo.",
+                "interaction_id": interaction.id,
+                "model": candidate_model
+            }
+        except Exception as exc:
+            last_error = exc
+            # Se falhar por previous_interaction_id expirado/inválido, tenta sem previous_interaction_id
+            if previous_interaction_id:
+                try:
+                    interaction = client.interactions.create(
+                        model=candidate_model,
+                        system_instruction=system_instruction,
+                        input=user_message
+                    )
+                    return {
+                        "reply": interaction.output_text or "Sem resposta gerada pelo modelo.",
+                        "interaction_id": interaction.id,
+                        "model": candidate_model
+                    }
+                except Exception as inner_exc:
+                    last_error = inner_exc
+            continue
+
+    raise RuntimeError(str(last_error))

@@ -1,1 +1,21 @@
-.venv
+# Ambientes virtuais
+.venv/
+venv/
+env/
+
+# Python bytecode e caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Arquivos de variáveis de ambiente e chaves secretas
+.env
+.env.*
+!.env.example
+
+# Arquivos de IDE e Sistema Operacional
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

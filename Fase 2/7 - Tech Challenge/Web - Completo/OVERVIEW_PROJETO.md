@@ -168,20 +168,83 @@ Heurística geométrica clássica para problemas de roteamento:
 | **4. Convex Hull** | Nº de Gerações, Taxa de Perturbação na Inserção, Ajuste Local | Controla quantas gerações de inserção geométrica testar, a variação na ordem dos pontos internos e o refinamento local. |
 | **5. Execução e Exportação** | Botão *📄 Gerar JSON da Solução* | Salva a solução encontrada no arquivo `melhor_rota_hospitalar.json` com resumo de métricas, pesos de penalidade e paradas detalhadas por veículo. |
 | **5. Execução e Exportação** | Botão *⬇️ Baixar JSON da Solução* | Aparece assim que o JSON é gerado e faz o download imediato do arquivo `melhor_rota_hospitalar.json` para o computador do usuário. |
-| **Etapa 4: Copiloto Gemini** | Seletor de Motorista, Chave API e Chat Interativo | Permite que cada motorista pergunte ao modelo `gemini-3.8-flash` sobre seu próximo destino, pesos, prioridades e cuidados de transporte com base no JSON da rota. |
+| **Recursos de Usabilidade (UX)** | Ícones `?` em todos os parâmetros | Tooltips flutuantes elegantes com explicações concisas e práticas sobre cada hiperparâmetro dos algoritmos e do VRP. |
+| **Recursos de Usabilidade (UX)** | Card Penalidades com Popover (Hover) | O card exibe a *Penalidade Total* (soma das 3 multas) e, ao passar o mouse, abre um popover detalhado com a decomposição exata de cada uma (Prioridade Médica, Excesso de Carga e Excesso de Autonomia). |
+| **Recursos de Usabilidade (UX)** | Gráfico com Eixo X Graduado | O eixo horizontal *Passo / Geração* exibe números graduados dinâmicos (ex: 0, 40, 80, 120, 160) e linhas de grade, alinhados com o eixo Y de Fitness. |
+| **Etapa 4: Copiloto Gemini** | Seletor de Motorista, Relatórios e Chat Interativo | Permite que motoristas perguntem sobre seu próximo destino/carga e que gestores gerem relatórios diários/semanais de eficiência e sugestões de melhoria no processo com base no JSON da rota. |
 
 ---
 
-## 6. Etapa 4: Integração com Google Gemini (`llm_driver_assistant.py`)
+## 6. Diagrama de Arquitetura da Solução Completa
 
-O módulo `llm_driver_assistant.py` conecta o sistema de otimização à nuvem do **Google Gemini** usando o SDK oficial `google-genai` e a **Interactions API** (`client.interactions.create` com o modelo `gemini-3.8-flash`):
+```mermaid
+flowchart TD
+    UI["Interface Web Interativa (templates/index.html)<br/>Canvas 2D com Setas + Gráfico + Tabelas + Chat Motorista"]
+    API["Servidor Web Flask (web_app.py)<br/>Endpoints SSE, Exportação JSON e Chat LLM"]
+    DISP["Orquestrador de Algoritmos (route_optimizer_dispatcher.py)"]
+    CORE["Núcleo de Domínio VRP e Penalidades (vrp_core.py)<br/>DeliveryPoint, Divisão de Frota e Função Fitness"]
+
+    GA["Algoritmo Genético<br/>(genetic_algorithm.py)"]
+    ACO["Colônia de Formigas<br/>(algo_ant_colony.py)"]
+    SA["Simulated Annealing<br/>(algo_simulated_annealing.py)"]
+    NN["Nearest Neighbor<br/>(algo_nearest_neighbor.py)"]
+    CH["Convex Hull<br/>(algo_convex_hull.py)"]
+
+    JSON_FILE["Arquivo Estruturado da Solução<br/>(melhor_rota_hospitalar.json)"]
+    LLM["Módulo Assistente LLM (llm_driver_assistant.py)<br/>Google Gemini Interactions API (gemini-3-flash-preview)"]
+
+    UI <-->|"Streaming SSE + REST"| API
+    API -->|"Parâmetros + Pesos Penalidade"| DISP
+    DISP --> GA & ACO & SA & NN & CH
+    GA & ACO & SA & NN & CH -->|"Avaliação Fitness Multicritério"| CORE
+    API -->|"Gera / Faz Download"| JSON_FILE
+    API <-->|"Pergunta do Motorista + JSON"| LLM
+    JSON_FILE -.->|"Base de Conhecimento"| LLM
+```
+
+---
+
+## 7. Comparativo de Desempenho entre as Abordagens de Roteamento
+
+No cenário hospitalar padrão (**1 Hospital Central + 14 unidades de entrega**, carga total de **215 kg** distribuída em **3 veículos com limite de 85 kg e 950 px de autonomia**), todos os 5 métodos foram avaliados sob a mesma Função Fitness em `vrp_core.py`:
+
+| Algoritmo / Heurística | Tipo de Abordagem | Fitness Médio Típico (Menor = Melhor) | Velocidade por Geração | Características e Comportamento Prático |
+| :--- | :--- | :---: | :---: | :--- |
+| **Algoritmo Genético (`genetic_algorithm.py`)** | Evolucionário Populacional (OX + 2-opt/Swap) | **~1.960 a 2.040** | Rápida | Excelente equilíbrio entre exploração global e priorização de entregas Críticas (UTI) nas primeiras paradas. |
+| **Ant Colony Optimization (`algo_ant_colony.py`)** | Inteligência de Enxame (Feromônio $\tau$ + Visibilidade $\eta$) | **~1.980 a 2.080** | Moderada | Aprende rapidamente boas conexões entre unidades próximas e críticas graças à matriz de visibilidade médica. |
+| **Simulated Annealing (`algo_simulated_annealing.py`)** | Meta-heurística de Trajetória Única (Metropolis) | **~1.990 a 2.110** | Muito Rápida | Escapa facilmente de ótimos locais nas primeiras gerações (alta temperatura) e estabiliza bem no resfriamento final. |
+| **Nearest Neighbor + 2-opt (`algo_nearest_neighbor.py`)** | Construtiva Gulosa Multi-Start + Busca Local | **~1.970 a 2.060** | Instantânea | Encontra uma rota viável excelente já na 1ª geração e refina cruzamentos com 2-opt ao longo das gerações. |
+| **Convex Hull + Inserção (`algo_convex_hull.py`)** | Construtiva Geométrica (Fecho Convexo) + Busca Local | **~2.010 a 2.130** | Rápida | Produz rotas visualmente limpas (sem laços geométricos) partindo do anel externo de unidades hospitalares. |
+
+---
+
+## 8. Etapa 4: Integração com Google Gemini (`llm_driver_assistant.py`)
+
+O módulo `llm_driver_assistant.py` conecta o sistema de otimização à nuvem do **Google Gemini** usando o SDK oficial `google-genai` e a **Interactions API** (`client.interactions.create`):
 
 1. **Base de Conhecimento Estruturada (`melhor_rota_hospitalar.json`)**:
-   - Sempre que um motorista envia uma pergunta no painel **"Central do Motorista & Copiloto de Rota"**, o backend injeta o JSON oficial da solução dentro do `system_instruction` da chamada ao Gemini.
-2. **Filtro por Veículo / Motorista**:
-   - O motorista pode selecionar seu veículo (`Motorista — Veículo 1`, `Veículo 2`, etc.) ou consultar como `Coordenador / Todos os Veículos`.
+   - Sempre que um motorista ou gestor envia uma solicitação no painel **"Central do Motorista & Copiloto de Rota"**, o backend injeta o JSON oficial da solução dentro do `system_instruction` da chamada ao Gemini.
+2. **Instruções para Motoristas, Relatórios de Eficiência e Sugestões de Melhoria**:
+   - **Para Motoristas**: Briefing completo do veículo, consulta de próximo destino, peso a descarregar e alertas de manuseio para itens Críticos (UTI/Hemoderivados/O2) e Urgentes (Insulina refrigerada).
+   - **Para Gestão Logística**: Botões dedicados para gerar **Relatórios Diários/Semanais de Eficiência** (analisando taxa de ocupação de carga em kg, consumo de autonomia em px e economia de recursos) e **Sugestões de Melhoria no Processo** com base nos padrões da rota.
 3. **Memória de Conversa Multi-Turno (`previous_interaction_id`)**:
-   - A Interactions API do Gemini armazena o contexto da conversa e retorna um `interaction.id`. No turno seguinte, o sistema envia `previous_interaction_id`, permitindo perguntas sequenciais naturais como:
+   - A Interactions API armazena o contexto da conversa e retorna um `interaction.id`. No turno seguinte, o sistema envia `previous_interaction_id`, permitindo perguntas sequenciais naturais como:
      - *Turno 1*: "Qual é o meu primeiro destino saindo do Hospital Central?"
      - *Turno 2*: "Já concluí essa entrega! Qual é a minha próxima parada e quantos quilos vou descarregar lá?"
+
+---
+
+## 9. Testes Automatizados (`test_vrp_system.py`)
+
+Para validar todas as funcionalidades exigidas no Tech Challenge, o arquivo `test_vrp_system.py` implementa testes automatizados com `unittest` cobrindo:
+1. Criação do cenário hospitalar e divisão de rotas em múltiplos veículos (`split_route_into_vehicles`);
+2. Aplicação correta das penalidades de prioridade médica, capacidade de carga e autonomia (`evaluate_solution_details`);
+3. Convergência e retorno válido de todos os **5 algoritmos de otimização** através do `route_optimizer_dispatcher.py`;
+4. Funcionamento dos endpoints da API Web (`/api/algorithms`, `/api/optimize/stream`, `/api/solution/generate-json`, `/api/solution/download-json`) e construção do prompt da LLM.
+
+Para executar os testes automatizados no terminal:
+```bash
+python -m unittest test_vrp_system.py -v
+```
+
 
