@@ -32,7 +32,7 @@ Fase 2/7 - Tech Challenge/
 │   ├── benchmark_att48.py              # Dataset clássico de referência da aula
 │   └── melhor_rota_hospitalar.json     # Arquivo JSON exportado na execução local
 │
-└── Web - Completo/                     # Versão Web Completa (Etapas 1, 2 e 3 + Exportação JSON)
+└── Web - Completo/                     # Versão Web Completa (Etapas 1, 2 e 3 + Exportação JSON + Docker)
     ├── web_app.py                      # Servidor Web (Flask) com Streaming SSE e exportação/download JSON
     ├── templates/
     │   └── index.html                  # Interface Web Interativa (Canvas 2D com setas, Gráfico, Tabelas e Controles)
@@ -46,10 +46,18 @@ Fase 2/7 - Tech Challenge/
     ├── algo_nearest_neighbor.py        # Algoritmo 4: Nearest Neighbor (Vizinho Mais Próximo + 2-opt)
     ├── algo_convex_hull.py             # Algoritmo 5: Convex Hull (Envoltória Convexa + Inserção)
     │
+    ├── llm_driver_assistant.py         # Etapa 4: Copiloto do Motorista integrado ao Google Gemini com .env
     ├── melhor_rota_hospitalar.json     # Solução gerada pelo botão "Gerar JSON da Solução" na Web
+    ├── test_vrp_system.py              # Suíte de Testes Automatizados (unittest) de ponta a ponta
+    ├── requirements.txt                # Lista de dependências Python (Flask, Gunicorn, Google-GenAI, Dotenv, etc.)
+    │
+    ├── Dockerfile                      # Receita de conteinerização Docker com Python 3.11-slim e Gunicorn
+    ├── docker-compose.yml              # Orquestrador Docker com mapeamento 127.0.0.1:5000, .env e restart automático
+    ├── .dockerignore                   # Exclusão de caches e ambientes virtuais da imagem Docker
+    ├── .env.example                    # Template versionado com modelo da variável GEMINI_API_KEY
+    ├── .env                            # Arquivo local com a chave secreta da API (ignorado pelo Git)
     ├── OVERVIEW_PROJETO.md             # Este documento técnico em formato Markdown
-    ├── OVERVIEW_PROJETO.txt            # Este documento técnico em formato Texto Puro
-    └── requirements.txt                # Lista de dependências Python para instalação local ou em VPS
+    └── OVERVIEW_PROJETO.txt            # Este documento técnico em formato Texto Puro
 ```
 
 ### Fluxo de Execução na Arquitetura Web (`Web - Completo`)
@@ -246,5 +254,59 @@ Para executar os testes automatizados no terminal:
 ```bash
 python -m unittest test_vrp_system.py -v
 ```
+
+---
+
+## 10. Conteinerização com Docker e Deploy em Produção na VPS (HostGator + CloudPanel + Portainer)
+
+A aplicação foi estruturada seguindo as melhores práticas da indústria (12-Factor App) para deploy profissional em nuvem, garantindo isolamento total, reprodutibilidade e alta disponibilidade.
+
+### 10.1. Conteinerização com Docker (`Dockerfile` e `docker-compose.yml`)
+- **Imagem Base**: `python:3.11-slim` com flags `PYTHONDONTWRITEBYTECODE=1` e `PYTHONUNBUFFERED=1` para evitar arquivos temporários e manter logs transmitidos em tempo real.
+- **Servidor WSGI de Produção**: A aplicação é executada via **Gunicorn** (`gunicorn --workers 2 --bind 0.0.0.0:5000 --timeout 120 web_app:app`), oferecendo suporte a concorrência e conexões persistentes para o streaming SSE.
+- **Healthcheck Nativo**: Monitoramento de integridade via módulo `urllib.request` do Python padrão (`http://localhost:5000/`), sem necessidade de instalar pacotes extras na imagem.
+- **Isolamento de Rede Local**: O container expõe a porta `127.0.0.1:5000:5000`, garantindo que conexões externas só entrem pelo Nginx com SSL/HTTPS.
+- **Persistência de Dados**: O arquivo estruturado `melhor_rota_hospitalar.json` é mapeado via volume, garantindo que as soluções geradas persistam mesmo após reinicializações.
+- **Reinicialização Automática (`restart: unless-stopped`)**: Integrada com o daemon do Docker habilitado no systemd da VPS (`systemctl is-enabled docker -> enabled`). Se o servidor reiniciar por manutenção ou o processo falhar, o container retorna ao ar em menos de 2 segundos.
+
+### 10.2. Arquitetura de Hospedagem em Produção na VPS
+A hospedagem foi implementada em uma **VPS Linux (HostGator)** combinando o painel de controle **CloudPanel** com o Docker:
+
+```
+[ Usuário na Internet ]
+         │ (HTTPS / Porta 443 com Certificado SSL Let's Encrypt)
+         ▼
+[ Nginx (CloudPanel) ] ── (Host: app.143.95.175.167.nip.io)
+         │ (Proxy Reverso / HTTP Local)
+         ▼
+[ Container Docker: vrp_hospital_web (Porta 127.0.0.1:5000) ]
+         │
+         ├── Gunicorn (2 Workers)
+         ├── Flask (web_app.py)
+         └── Google Gemini API (Chave injetada via .env)
+```
+
+- **Resolução de Domínio sem Custos Adicionais (`nip.io`)**: Utilização do serviço wildcard DNS `nip.io`, permitindo acessar o sistema em `app.143.95.175.167.nip.io` com suporte nativo à emissão e renovação automática de certificados SSL gratuitos da Let's Encrypt.
+- **Segurança de Acesso SSH**: Acesso administrativo à VPS configurado em porta de alta segurança (`22022`) com suporte a autenticação por par de chaves criptográficas `Ed25519`, mitigando tentativas de invasão por força bruta.
+- **Segurança de Variáveis de Ambiente**: Chaves de API e segredos mantidos estritamente em arquivo `.env` protegido na VPS e ignorados no repositório Git via `.gitignore`, eliminando riscos de vazamento ou bloqueios por GitHub Push Protection.
+
+### 10.3. Sincronização Otimizada com Git Sparse-Checkout
+Para evitar o download desnecessário de todas as aulas e fases anteriores do curso na VPS, o repositório na nuvem foi configurado com **Git Sparse-Checkout**:
+```bash
+git clone --filter=blob:none --no-checkout https://github.com/AndrCapela/FIAP---IA-para-devs.git /home/app-hospital
+cd /home/app-hospital
+git sparse-checkout set "Fase 2/7 - Tech Challenge/Web - Completo"
+git checkout main
+```
+Isso mantém o código sincronizado com 1 único repositório Git sem duplicar trabalho e sem ocupar armazenamento com outros materiais.
+
+### 10.4. Gerenciamento e Observabilidade com Portainer CE
+Para facilitar o monitoramento operacional da aplicação, foi implantado o **Portainer Community Edition (CE)** conteinerizado na mesma VPS:
+- **Acesso Seguro**: `https://portainer.143.95.175.167.nip.io` com SSL dedicado via CloudPanel.
+- **Autenticação Segura**: Ativação com `setup_token` gerado nos logs do servidor.
+- **Recursos em Produção**:
+  1. *Dashboard Visual de Recursos*: Acompanhamento contínuo do consumo de CPU e memória RAM da VPS.
+  2. *Live Logs*: Inspeção em tempo real das chamadas à IA do Gemini e requisições SSE dos algoritmos.
+  3. *Gestão de Ciclo de Vida*: Ações de Restart, Stop e Deploy de containers com apenas 1 clique.
 
 

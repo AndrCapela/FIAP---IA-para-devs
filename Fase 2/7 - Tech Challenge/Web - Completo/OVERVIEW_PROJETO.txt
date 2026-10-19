@@ -41,7 +41,7 @@ O projeto em `Fase 2\7 - Tech Challenge` está separado em duas pastas:
   `draw_functions.py`, `benchmark_att48.py`).
 
 - `Web - Completo/`:
-  Contém a aplicação Web interativa completa das Etapas 1, 2 e 3:
+  Contém a aplicação Web interativa completa das Etapas 1, 2, 3 e 4 + Conteinerização:
   * `web_app.py`: Servidor Web (Flask) com Streaming em tempo real (SSE) e rotas
     para geração (`/api/solution/generate-json`) e download (`/api/solution/download-json`)
     do arquivo JSON da solução.
@@ -59,8 +59,19 @@ O projeto em `Fase 2\7 - Tech Challenge` está separado em duas pastas:
   * `algo_simulated_annealing.py`: Simulated Annealing (Têmpera Simulada + 2-opt).
   * `algo_nearest_neighbor.py`: Nearest Neighbor (Vizinho Mais Próximo Multi-Start + 2-opt).
   * `algo_convex_hull.py`: Convex Hull (Envoltória Convexa + Inserção).
+  * `llm_driver_assistant.py`: Etapa 4 - Copiloto do Motorista integrado ao Google Gemini
+    com carregamento automático de variáveis via `.env`.
   * `melhor_rota_hospitalar.json`: Arquivo JSON gerado quando o usuário clica em
     "Gerar JSON da Solução" na interface Web (pronto para uso pela LLM na Etapa 4).
+  * `test_vrp_system.py`: Suíte de Testes Automatizados (unittest) de ponta a ponta.
+  * `requirements.txt`: Dependências Python (Flask, Gunicorn, Google-GenAI, Dotenv, etc.).
+  * `Dockerfile`: Receita de conteinerização Docker com Python 3.11-slim e Gunicorn.
+  * `docker-compose.yml`: Orquestrador Docker com mapeamento 127.0.0.1:5000, .env e restart automático.
+  * `.dockerignore`: Exclusão de caches e ambientes virtuais da imagem Docker.
+  * `.env.example`: Modelo versionado para configuração da chave GEMINI_API_KEY.
+  * `.env`: Arquivo local com a chave secreta da API (ignorado pelo Git).
+  * `OVERVIEW_PROJETO.md`: Documentação técnica completa em formato Markdown.
+  * `OVERVIEW_PROJETO.txt`: Documentação técnica completa em formato Texto Puro.
 
 
 3. COMO UMA ROTA É DIVIDIDA ENTRE OS VEÍCULOS E AVALIADA (`vrp_core.py`)
@@ -224,5 +235,70 @@ O arquivo `test_vrp_system.py` valida automaticamente:
 
 Comando para rodar os testes:
   python -m unittest test_vrp_system.py -v
+
+
+10. CONTEINERIZAÇÃO COM DOCKER E DEPLOY EM PRODUÇÃO NA VPS (HOSTGATOR + CLOUDPANEL + PORTAINER)
+--------------------------------------------------------------------------------
+A aplicação foi estruturada seguindo as melhores práticas da indústria (12-Factor App)
+para deploy profissional em nuvem, garantindo isolamento total, reprodutibilidade
+e alta disponibilidade.
+
+10.1. Conteinerização com Docker (Dockerfile e docker-compose.yml):
+- Imagem Base: `python:3.11-slim` com flags `PYTHONDONTWRITEBYTECODE=1` e `PYTHONUNBUFFERED=1`
+  para evitar arquivos temporários e manter logs transmitidos em tempo real.
+- Servidor WSGI de Produção: A aplicação é executada via Gunicorn
+  (`gunicorn --workers 2 --bind 0.0.0.0:5000 --timeout 120 web_app:app`), oferecendo suporte
+  a concorrência e conexões persistentes para o streaming SSE.
+- Healthcheck Nativo: Monitoramento de integridade via módulo `urllib.request` do Python padrão
+  (`http://localhost:5000/`), sem necessidade de instalar pacotes extras na imagem.
+- Isolamento de Rede Local: O container expõe a porta `127.0.0.1:5000:5000`, garantindo que
+  conexões externas só entrem pelo Nginx com SSL/HTTPS.
+- Persistência de Dados: O arquivo estruturado `melhor_rota_hospitalar.json` é mapeado via
+  volume, garantindo que as soluções geradas persistam mesmo após reinicializações.
+- Reinicialização Automática (`restart: unless-stopped`): Integrada com o daemon do Docker
+  habilitado no systemd da VPS (`systemctl is-enabled docker -> enabled`). Se o servidor
+  reiniciar por manutenção ou o processo falhar, o container retorna ao ar em menos de 2s.
+
+10.2. Arquitetura de Hospedagem em Produção na VPS:
+A hospedagem foi implementada em uma VPS Linux (HostGator) combinando o painel de
+controle CloudPanel com o Docker:
+
+  [ Usuário na Internet ]
+           │ (HTTPS / Porta 443 com Certificado SSL Let's Encrypt)
+           ▼
+  [ Nginx (CloudPanel) ] ── (Host: app.143.95.175.167.nip.io)
+           │ (Proxy Reverso / HTTP Local)
+           ▼
+  [ Container Docker: vrp_hospital_web (Porta 127.0.0.1:5000) ]
+           │
+           ├── Gunicorn (2 Workers)
+           ├── Flask (web_app.py)
+           └── Google Gemini API (Chave injetada via .env)
+
+- Resolução de Domínio sem Custos Adicionais (`nip.io`): Utilização do serviço wildcard DNS
+  `nip.io`, permitindo acessar o sistema em `app.143.95.175.167.nip.io` com suporte nativo
+  à emissão e renovação automática de certificados SSL gratuitos da Let's Encrypt.
+- Segurança de Acesso SSH: Acesso administrativo à VPS configurado em porta de alta segurança
+  (`22022`) com suporte a autenticação por par de chaves criptográficas `Ed25519`.
+- Segurança de Variáveis de Ambiente: Chaves de API e segredos mantidos estritamente em
+  arquivo `.env` protegido na VPS e ignorados no repositório Git via `.gitignore`.
+
+10.3. Sincronização Otimizada com Git Sparse-Checkout:
+Para evitar o download desnecessário de todas as aulas e fases anteriores do curso na VPS,
+o repositório na nuvem foi configurado com Git Sparse-Checkout:
+  git clone --filter=blob:none --no-checkout https://github.com/AndrCapela/FIAP---IA-para-devs.git /home/app-hospital
+  cd /home/app-hospital
+  git sparse-checkout set "Fase 2/7 - Tech Challenge/Web - Completo"
+  git checkout main
+
+10.4. Gerenciamento e Observabilidade com Portainer CE:
+Para facilitar o monitoramento operacional da aplicação, foi implantado o Portainer
+Community Edition (CE) conteinerizado na mesma VPS:
+- Acesso Seguro: `https://portainer.143.95.175.167.nip.io` com SSL dedicado via CloudPanel.
+- Autenticação Segura: Ativação com `setup_token` gerado nos logs do servidor.
+- Recursos em Produção:
+  1) Dashboard Visual de Recursos: Acompanhamento contínuo do consumo de CPU e RAM da VPS.
+  2) Live Logs: Inspeção em tempo real das chamadas à IA do Gemini e requisições SSE dos algoritmos.
+  3) Gestão de Ciclo de Vida: Ações de Restart, Stop e Deploy de containers com 1 clique.
 
 
