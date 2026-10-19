@@ -17,3 +17,8 @@ services:
     volumes:
       # Persiste o arquivo JSON de rotas salvas entre reinicializações do container
       - ./melhor_rota_hospitalar.json:/app/melhor_rota_hospitalar.json
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
