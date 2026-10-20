@@ -15,8 +15,12 @@ Funcionalidades implementadas:
 
 import os
 import json
+import logging
 from datetime import datetime
+from typing import List, Tuple, Dict, Any, Optional
 from flask import Flask, render_template, request, jsonify, Response, send_file
+
+logger = logging.getLogger(__name__)
 
 from vrp_core import (
     DeliveryPoint,
