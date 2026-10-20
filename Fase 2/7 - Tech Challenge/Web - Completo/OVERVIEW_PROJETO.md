@@ -240,6 +240,22 @@ O módulo `llm_driver_assistant.py` conecta o sistema de otimização à nuvem d
      - *Turno 1*: "Qual é o meu primeiro destino saindo do Hospital Central?"
      - *Turno 2*: "Já concluí essa entrega! Qual é a minha próxima parada e quantos quilos vou descarregar lá?"
 
+### 8.1. Interface Responsiva e Navegação Mobile em Abas (Ergonomia para o Motorista)
+
+Para garantir que o **motorista da ambulância ou van de entregas hospitalares** possa utilizar o Copiloto Gemini confortavelmente a partir de seu **smartphone ou tablet no veículo**, a interface web (`templates/index.html`) foi refatorada com um sistema de **Abas Móveis Responsivas (Mobile Tabs)**:
+
+1. **Separação em Abas Especializadas em Telas ≤ 960px**:
+   - `⚙️ Config`: Painel com origem dos pontos, limites individuais da frota (carga/autonomia), penalidades da função fitness e seleção dos algoritmos.
+   - `🗺️ Mapa`: Painel focado com cards de métricas em tempo real, simulação 2D com setas direcionais, gráfico de convergência e botão de ação rápida (`▶ Executar Otimização`).
+   - `📋 Rotas`: Listagem estruturada das rotas atribuídas a cada veículo e tabela de paradas hospitalares com suporte a rolagem suave por toque (`-webkit-overflow-scrolling: touch`).
+   - `🤖 Copiloto`: Central de atendimento do motorista conectada ao Gemini, com chips de perguntas rápidas em rolagem horizontal (evitando poluição vertical) e campo de texto com envio imediato.
+2. **Proteção contra Toques Acidentais no Canvas de Rotas**:
+   - Em smartphones, arrastar o dedo pela tela para navegar disparava cliques indesejados no Canvas, criando pontos aleatórios. Foi implementado o alternador `[📍 Modo Toque: Desativado / Ativado]`, garantindo que o scroll do dedo seja livre e seguro.
+3. **Card de Penalidades Adaptado para Telas de Toque**:
+   - Em dispositivos móveis (onde não existe o evento `:hover`), tocar no card de penalidades abre a discriminação detalhada (Prioridade Médica, Excesso de Carga e Excesso de Autonomia) como um *bottom-sheet* flutuante.
+4. **Preservação Total do Modo Desktop**:
+   - Em telas widescreen (> 960px), a barra de abas oculta-se automaticamente e o layout exibe simultaneamente a Sidebar fixa e o grid amplo, mantendo 100% da experiência desktop original.
+
 ---
 
 ## 9. Testes Automatizados (`test_vrp_system.py`)
@@ -248,7 +264,8 @@ Para validar todas as funcionalidades exigidas no Tech Challenge, o arquivo `tes
 1. Criação do cenário hospitalar e divisão de rotas em múltiplos veículos (`split_route_into_vehicles`);
 2. Aplicação correta das penalidades de prioridade médica, capacidade de carga e autonomia (`evaluate_solution_details`);
 3. Convergência e retorno válido de todos os **5 algoritmos de otimização** através do `route_optimizer_dispatcher.py`;
-4. Funcionamento dos endpoints da API Web (`/api/algorithms`, `/api/optimize/stream`, `/api/solution/generate-json`, `/api/solution/download-json`) e construção do prompt da LLM.
+4. Funcionamento dos endpoints da API Web (`/api/algorithms`, `/api/optimize/stream`, `/api/solution/generate-json`, `/api/solution/download-json`) e construção do prompt da LLM;
+5. **Responsividade Mobile e Template Web (`test_mobile_ui_template_and_responsiveness`)**: Validação da metatag de viewport, elementos da barra de abas móveis, alternador de proteção de toque e regras de media queries CSS.
 
 Para executar os testes automatizados no terminal:
 ```bash

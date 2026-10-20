@@ -224,6 +224,15 @@ oficial `google-genai` (`client.interactions.create` com `gemini-3-flash-preview
 - Memória Multi-Turno (`previous_interaction_id`):
   Permite que o motorista converse continuamente mantendo o histórico da conversa.
 
+8.1. INTERFACE RESPONSIVA E NAVEGAÇÃO MOBILE EM ABAS (ERGONOMIA PARA O MOTORISTA)
+--------------------------------------------------------------------------------
+Para permitir que os motoristas utilizem o sistema diretamente em smartphones e tablets
+embarcados nos veículos, a interface web foi refatorada com navegação responsiva em abas:
+1) Abas Mobile (Telas <= 960px): Config, Mapa & Métricas, Rotas e Copiloto Gemini;
+2) Proteção contra Toques no Canvas: Alternador para evitar criação acidental de pontos ao rolar a tela com o dedo;
+3) Detalhamento de Penalidades por Toque: Acesso ao discriminativo de atraso e capacidade em telas de toque;
+4) Preservação Total do Modo Desktop: Em telas amplas (> 960px), a visualização completa e simultânea em duas colunas é mantida.
+
 
 9. TESTES AUTOMATIZADOS (`test_vrp_system.py`)
 --------------------------------------------------------------------------------
@@ -231,7 +240,8 @@ O arquivo `test_vrp_system.py` valida automaticamente:
 1) A criação do cenário hospitalar e divisão de rotas entre múltiplos veículos;
 2) O cálculo das penalidades de prioridade, capacidade e autonomia em `vrp_core.py`;
 3) A execução e convergência dos 5 algoritmos no `route_optimizer_dispatcher.py`;
-4) Os endpoints Flask (`web_app.py`), exportação JSON e geração de prompt da LLM.
+4) Os endpoints Flask (`web_app.py`), exportação JSON e geração de prompt da LLM;
+5) A responsividade mobile do template web (`test_mobile_ui_template_and_responsiveness`).
 
 Comando para rodar os testes:
   python -m unittest test_vrp_system.py -v

@@ -521,12 +521,250 @@
             border-radius: 4px;
             font-size: 12px;
         }
+
+        /* =====================================================================
+           ARQUITETURA RESPONSIVA E NAVEGAÇÃO POR ABAS (MOBILE)
+           ===================================================================== */
+        .mobile-tab-bar {
+            display: none;
+            background: #0f172a;
+            border-bottom: 2px solid #2563eb;
+            position: sticky;
+            top: 0;
+            z-index: 1500;
+            width: 100%;
+            padding: 4px 6px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        }
+        .mobile-tab-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            padding: 8px 4px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            font-size: 11px;
+            font-weight: 600;
+            min-height: 48px;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+        .mobile-tab-btn .tab-icon {
+            font-size: 16px;
+            line-height: 1;
+        }
+        .mobile-tab-btn:hover {
+            color: #f8fafc;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .mobile-tab-btn.active {
+            color: #ffffff;
+            background: #2563eb;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+        }
+
+        .mobile-canvas-controls {
+            display: none;
+            margin-bottom: 8px;
+        }
+        .btn-toggle-touch {
+            background: #e2e8f0;
+            border: 1px solid #cbd5e1;
+            color: #1e293b;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+        .btn-toggle-touch.active {
+            background: #16a34a;
+            color: #ffffff;
+            border-color: #15803d;
+        }
+
+        .mobile-quick-actions {
+            display: none;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .btn-mobile-run {
+            flex: 1;
+            min-height: 44px;
+            font-size: 13.5px;
+        }
+
+        .tab-pane {
+            width: 100%;
+        }
+
+        @media (min-width: 961px) {
+            .mobile-tab-bar {
+                display: none !important;
+            }
+            .mobile-canvas-controls {
+                display: none !important;
+            }
+            .mobile-quick-actions {
+                display: none !important;
+            }
+            .tab-pane {
+                display: block !important;
+            }
+            aside.sidebar.tab-pane {
+                display: flex !important;
+            }
+        }
+
+        @media (max-width: 960px) {
+            body {
+                flex-direction: column;
+                min-height: 100vh;
+            }
+            .mobile-tab-bar {
+                display: flex;
+            }
+            .sidebar {
+                width: 100%;
+                max-height: none;
+                position: static;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                box-sizing: border-box;
+            }
+            .main-content {
+                padding: 12px;
+                gap: 12px;
+            }
+
+            .tab-pane {
+                display: none;
+            }
+            .tab-pane.active {
+                display: block !important;
+            }
+            aside.sidebar.tab-pane.active {
+                display: flex !important;
+            }
+
+            .mobile-canvas-controls {
+                display: flex;
+            }
+            .mobile-quick-actions {
+                display: flex;
+            }
+            .desktop-only {
+                display: none !important;
+            }
+
+            .visual-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .bottom-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+
+            .penalties-popover {
+                position: fixed;
+                top: auto;
+                bottom: 16px;
+                left: 50%;
+                right: auto;
+                transform: translateX(-50%) translateY(20px);
+                width: calc(100vw - 32px);
+                max-width: 380px;
+                z-index: 2500;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            }
+            .penalties-popover.show-mobile {
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                transform: translateX(-50%) translateY(0) !important;
+            }
+
+            .driver-quick-chips {
+                display: flex !important;
+                flex-wrap: nowrap !important;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                gap: 8px;
+                padding-bottom: 8px;
+            }
+            .driver-quick-chips .btn {
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+
+            .driver-controls-grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            .modal-box {
+                max-width: 96vw;
+                max-height: 90vh;
+                padding: 14px;
+            }
+        }
+
+        @media (max-width: 540px) {
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            .driver-input-row {
+                flex-direction: column;
+            }
+            .driver-input-row .btn {
+                width: 100% !important;
+            }
+            .modal-backdrop {
+                padding: 10px;
+            }
+        }
     </style>
 </head>
 <body>
 
-    <!-- BARRA LATERAL DE CONFIGURAÇÃO -->
-    <aside class="sidebar">
+    <!-- BARRA DE NAVEGAÇÃO MOBILE (Visível apenas em telas <= 960px) -->
+    <nav class="mobile-tab-bar" id="mobileTabBar" aria-label="Navegação Mobile">
+        <button type="button" class="mobile-tab-btn" id="tabBtnConfig" data-tab="config" onclick="switchMobileTab('config')">
+            <span class="tab-icon">⚙️</span>
+            <span class="tab-label">Config</span>
+        </button>
+        <button type="button" class="mobile-tab-btn active" id="tabBtnMap" data-tab="map" onclick="switchMobileTab('map')">
+            <span class="tab-icon">🗺️</span>
+            <span class="tab-label">Mapa</span>
+        </button>
+        <button type="button" class="mobile-tab-btn" id="tabBtnRoutes" data-tab="routes" onclick="switchMobileTab('routes')">
+            <span class="tab-icon">📋</span>
+            <span class="tab-label">Rotas</span>
+        </button>
+        <button type="button" class="mobile-tab-btn" id="tabBtnDriver" data-tab="driver" onclick="switchMobileTab('driver')">
+            <span class="tab-icon">🤖</span>
+            <span class="tab-label">Copiloto</span>
+        </button>
+    </nav>
+
+    <!-- BARRA LATERAL DE CONFIGURAÇÃO (Aba: Config) -->
+    <aside class="sidebar tab-pane" id="tabPaneConfig">
         <div>
             <h1>Logística Hospitalar (VRP)</h1>
             <p class="subtitle">Etapas 2 e 3: Frota Individual + Múltiplos Algoritmos</p>
@@ -794,204 +1032,228 @@
 
     <!-- ÁREA PRINCIPAL -->
     <main class="main-content">
-        <!-- Cards Superiores -->
-        <section class="metrics-grid">
-            <div class="metric-card">
-                <div class="label">Método Ativo</div>
-                <div class="value" id="metricAlgo" style="font-size: 14px;">Algoritmo Genético</div>
-            </div>
-            <div class="metric-card">
-                <div class="label">Passo / Geração</div>
-                <div class="value" id="metricGen">0 / -</div>
-            </div>
-            <div class="metric-card">
-                <div class="label">Melhor Fitness (Custo Total)</div>
-                <div class="value" id="metricFitness">-</div>
-            </div>
-            <div class="metric-card">
-                <div class="label">Distância Total</div>
-                <div class="value" id="metricDist">-</div>
-            </div>
-            <div class="metric-card penalties-card" id="cardPenalties">
-                <div class="label">
-                    <span>Penalidade Total</span>
-                    <span style="font-size: 11px; color: #2563eb; font-weight: bold;">ℹ️ Ver detalhes</span>
+        <!-- ABA MOBILE 2: MAPA E MÉTRICAS (id="tabPaneMap") -->
+        <div class="tab-pane active" id="tabPaneMap">
+            <!-- Cards Superiores -->
+            <section class="metrics-grid">
+                <div class="metric-card">
+                    <div class="label">Método Ativo</div>
+                    <div class="value" id="metricAlgo" style="font-size: 14px;">Algoritmo Genético</div>
                 </div>
-                <div class="value" id="metricPrio">-</div>
-                <div class="penalties-subtext" id="metricPrioSub">Passe o mouse p/ detalhes</div>
-
-                <!-- Popover flutuante com as 3 penalidades (Prioridade, Carga e Autonomia) -->
-                <div class="penalties-popover">
-                    <div class="popover-header">
-                        <span>Decomposição das Penalidades</span>
-                        <span class="popover-badge" id="popTotalBadge">Total: 0.0</span>
-                    </div>
-                    <div class="popover-row">
-                        <div class="popover-row-label">
-                            <span class="p-dot dot-prio"></span>
-                            <span>Prioridade Médica:</span>
-                        </div>
-                        <span class="popover-row-val" id="popPrioVal" style="color: #38bdf8;">0.0</span>
-                    </div>
-                    <div class="popover-desc">Atraso na entrega de insumos Críticos (UTI) e Urgentes.</div>
-
-                    <div class="popover-divider"></div>
-
-                    <div class="popover-row">
-                        <div class="popover-row-label">
-                            <span class="p-dot dot-cap"></span>
-                            <span>Excesso de Carga:</span>
-                        </div>
-                        <span class="popover-row-val" id="popCapVal" style="color: #4ade80;">0.0 (OK)</span>
-                    </div>
-                    <div class="popover-desc">Multa para kg excedentes da capacidade dos veículos.</div>
-
-                    <div class="popover-divider"></div>
-
-                    <div class="popover-row">
-                        <div class="popover-row-label">
-                            <span class="p-dot dot-aut"></span>
-                            <span>Excesso de Autonomia:</span>
-                        </div>
-                        <span class="popover-row-val" id="popAutVal" style="color: #4ade80;">0.0 (OK)</span>
-                    </div>
-                    <div class="popover-desc">Multa para px excedentes do alcance dos veículos.</div>
+                <div class="metric-card">
+                    <div class="label">Passo / Geração</div>
+                    <div class="value" id="metricGen">0 / -</div>
                 </div>
-            </div>
-            <div class="metric-card">
-                <div class="label">Status das Restrições</div>
-                <div class="value" id="metricStatus" style="font-size: 15px;">Aguardando início</div>
-            </div>
-        </section>
+                <div class="metric-card">
+                    <div class="label">Melhor Fitness (Custo Total)</div>
+                    <div class="value" id="metricFitness">-</div>
+                </div>
+                <div class="metric-card">
+                    <div class="label">Distância Total</div>
+                    <div class="value" id="metricDist">-</div>
+                </div>
+                <div class="metric-card penalties-card" id="cardPenalties" onclick="togglePenaltiesPopover(event)" title="Clique para abrir detalhes no celular">
+                    <div class="label">
+                        <span>Penalidade Total</span>
+                        <span style="font-size: 11px; color: #2563eb; font-weight: bold;">ℹ️ Ver detalhes</span>
+                    </div>
+                    <div class="value" id="metricPrio">-</div>
+                    <div class="penalties-subtext" id="metricPrioSub">Passe o mouse ou toque</div>
 
-        <!-- Painel Duplo: Canvas 2D (Com Setas Direcionais) + Gráfico de Convergência -->
-        <section class="visual-grid">
-            <div class="panel-card">
+                    <!-- Popover flutuante com as 3 penalidades (Prioridade, Carga e Autonomia) -->
+                    <div class="penalties-popover">
+                        <div class="popover-header">
+                            <span>Decomposição das Penalidades</span>
+                            <span class="popover-badge" id="popTotalBadge">Total: 0.0</span>
+                        </div>
+                        <div class="popover-row">
+                            <div class="popover-row-label">
+                                <span class="p-dot dot-prio"></span>
+                                <span>Prioridade Médica:</span>
+                            </div>
+                            <span class="popover-row-val" id="popPrioVal" style="color: #38bdf8;">0.0</span>
+                        </div>
+                        <div class="popover-desc">Atraso na entrega de insumos Críticos (UTI) e Urgentes.</div>
+
+                        <div class="popover-divider"></div>
+
+                        <div class="popover-row">
+                            <div class="popover-row-label">
+                                <span class="p-dot dot-cap"></span>
+                                <span>Excesso de Carga:</span>
+                            </div>
+                            <span class="popover-row-val" id="popCapVal" style="color: #4ade80;">0.0 (OK)</span>
+                        </div>
+                        <div class="popover-desc">Multa para kg excedentes da capacidade dos veículos.</div>
+
+                        <div class="popover-divider"></div>
+
+                        <div class="popover-row">
+                            <div class="popover-row-label">
+                                <span class="p-dot dot-aut"></span>
+                                <span>Excesso de Autonomia:</span>
+                            </div>
+                            <span class="popover-row-val" id="popAutVal" style="color: #4ade80;">0.0 (OK)</span>
+                        </div>
+                        <div class="popover-desc">Multa para px excedentes do alcance dos veículos.</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="label">Status das Restrições</div>
+                    <div class="value" id="metricStatus" style="font-size: 15px;">Aguardando início</div>
+                </div>
+            </section>
+
+            <!-- Ações Rápidas no Mobile (Executar / Parar direto do Mapa) -->
+            <div class="mobile-quick-actions" id="mobileQuickActions">
+                <button class="btn btn-primary btn-mobile-run" id="btnMobileStart" onclick="startOptimization()">
+                    ▶ Executar Otimização
+                </button>
+                <button class="btn btn-danger btn-mobile-run" id="btnMobileStop" onclick="stopOptimization()" style="display: none;">
+                    ⏹ Parar Execução
+                </button>
+            </div>
+
+            <!-- Painel Duplo: Canvas 2D (Com Setas Direcionais) + Gráfico de Convergência -->
+            <section class="visual-grid">
+                <div class="panel-card">
+                    <h2>
+                        <span>Simulação em Tempo Real (Setas indicam a direção)</span>
+                        <span class="desktop-only" style="font-size: 11.5px; font-weight: normal; color: #64748b;">Clique no mapa para adicionar um ponto!</span>
+                    </h2>
+                    <div class="mobile-canvas-controls">
+                        <button type="button" id="btnToggleAddPoint" class="btn-toggle-touch" onclick="toggleAddPointMode()">
+                            📍 Modo Toque: Desativado (Toque livre p/ rolar a página)
+                        </button>
+                    </div>
+                    <canvas id="routeCanvas" width="660" height="440" style="cursor: crosshair;" title="Clique em qualquer posição para adicionar um novo ponto de entrega"></canvas>
+                    <div class="legend-bar">
+                        <div class="legend-item"><span class="dot" style="background:#14285a; border:2px solid #facc15;"></span> Hospital Central (CD)</div>
+                        <div class="legend-item"><span class="dot" style="background:#dc2626;"></span> Crítico (UTI/Emergência)</div>
+                        <div class="legend-item"><span class="dot" style="background:#ea8a00;"></span> Urgente (Refrigerado/UPA)</div>
+                        <div class="legend-item"><span class="dot" style="background:#16a34a;"></span> Regular (Insumos)</div>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <h2>Curva de Convergência do Fitness</h2>
+                    <canvas id="chartCanvas" width="460" height="440"></canvas>
+                </div>
+            </section>
+        </div>
+
+        <!-- ABA MOBILE 3: ROTAS POR VEÍCULO E PONTOS (id="tabPaneRoutes") -->
+        <div class="tab-pane" id="tabPaneRoutes">
+            <!-- Painel Inferior: Rotas por Veículo + Lista Detalhada de Todos os Pontos -->
+            <section class="bottom-grid">
+                <div class="panel-card">
+                    <h2>Rotas Otimizadas por Veículo (Com Limites Individuais)</h2>
+                    <div id="vehiclesContainer">
+                        <p style="font-size: 13px; color: #64748b;">Configure os veículos na barra lateral e clique em <b>"Executar Otimização"</b>.</p>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <h2>
+                        <span>Lista de Pontos de Entrega e Detalhes</span>
+                        <span id="pointsCountBadge" style="font-size: 12px; font-weight: normal; color: #64748b;"></span>
+                    </h2>
+                    <div class="points-list-wrapper">
+                        <table class="points-detail-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Unidade / Paciente</th>
+                                    <th>Coord (X, Y)</th>
+                                    <th>Carga</th>
+                                    <th>Prioridade</th>
+                                    <th>Insumo / Medicamento</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pointsDetailTableBody">
+                                <!-- Preenchido dinamicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ABA MOBILE 4: CENTRAL DO MOTORISTA & COPILOTO GEMINI (id="tabPaneDriver") -->
+        <div class="tab-pane" id="tabPaneDriver">
+            <!-- Painel Etapa 4: Copiloto do Motorista conectado ao Google Gemini -->
+            <section class="panel-card" style="border-top: 4px solid #2563eb;">
                 <h2>
-                    <span>Simulação em Tempo Real (Setas indicam a direção do veículo)</span>
-                    <span style="font-size: 11.5px; font-weight: normal; color: #64748b;">Clique no mapa para adicionar um ponto!</span>
+                    <span>🤖 Etapa 4: Central do Motorista & Copiloto de Rota (Google Gemini)</span>
+                    <span style="font-size: 11.5px; font-weight: normal; color: #64748b;">Baseado no arquivo <code>melhor_rota_hospitalar.json</code></span>
                 </h2>
-                <canvas id="routeCanvas" width="660" height="440" style="cursor: crosshair;" title="Clique em qualquer posição para adicionar um novo ponto de entrega"></canvas>
-                <div class="legend-bar">
-                    <div class="legend-item"><span class="dot" style="background:#14285a; border:2px solid #facc15;"></span> Hospital Central (CD)</div>
-                    <div class="legend-item"><span class="dot" style="background:#dc2626;"></span> Crítico (UTI/Emergência)</div>
-                    <div class="legend-item"><span class="dot" style="background:#ea8a00;"></span> Urgente (Refrigerado/UPA)</div>
-                    <div class="legend-item"><span class="dot" style="background:#16a34a;"></span> Regular (Insumos)</div>
+
+                <div class="driver-controls-grid" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; margin-bottom: 12px; align-items: end;">
+                    <div class="field" style="margin: 0;">
+                        <label for="driverSelect">Quem está perguntando?</label>
+                        <select id="driverSelect" onchange="resetDriverConversation()">
+                            <option value="all">Coordenador / Todos os Veículos</option>
+                            <option value="1">Motorista — Veículo 1</option>
+                            <option value="2">Motorista — Veículo 2</option>
+                            <option value="3">Motorista — Veículo 3</option>
+                        </select>
+                    </div>
+                    <div class="field" style="margin: 0;">
+                        <label for="geminiApiKeyInput">
+                            <span>Gemini API Key (Opcional — já configurada no servidor)</span>
+                            <a href="https://aistudio.google.com/apikey" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: normal;">Google AI Studio ↗</a>
+                        </label>
+                        <input type="password" id="geminiApiKeyInput" placeholder="✓ Chave já configurada no servidor (deixe em branco ou cole outra)"
+                            style="width: 100%; padding: 6px 9px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+                    </div>
+                    <button class="btn btn-secondary" style="width: auto; margin: 0; padding: 8px 12px;" onclick="resetDriverConversation()">
+                        🔄 Limpar Conversa
+                    </button>
                 </div>
-            </div>
 
-            <div class="panel-card">
-                <h2>Curva de Convergência do Fitness</h2>
-                <canvas id="chartCanvas" width="460" height="440"></canvas>
-            </div>
-        </section>
-
-        <!-- Painel Inferior: Rotas por Veículo + Lista Detalhada de Todos os Pontos -->
-        <section class="bottom-grid">
-            <div class="panel-card">
-                <h2>Rotas Otimizadas por Veículo (Com Limites Individuais)</h2>
-                <div id="vehiclesContainer">
-                    <p style="font-size: 13px; color: #64748b;">Configure os veículos na barra lateral e clique em <b>"Executar Otimização"</b>.</p>
+                <!-- Botões de Perguntas Rápidas para o Motorista e Gestão Logística -->
+                <div class="driver-quick-chips">
+                    <button class="btn btn-secondary" style="width: auto; margin: 0;"
+                        onclick="sendQuickDriverQuestion('Me dê o briefing completo da minha rota, na ordem exata de saída, com o peso e o que devo entregar em cada parada.')">
+                        📋 Briefing completo da minha rota
+                    </button>
+                    <button class="btn btn-secondary" style="width: auto; margin: 0;"
+                        onclick="sendQuickDriverQuestion('Acabei de sair do Hospital Central. Qual é o meu primeiro destino, quantos quilos vou descarregar lá e qual é o próximo destino depois dele?')">
+                        📍 Qual é meu 1º e 2º destino?
+                    </button>
+                    <button class="btn btn-secondary" style="width: auto; margin: 0;"
+                        onclick="sendQuickDriverQuestion('Quais são as entregas Críticas (UTI/Emergência) ou Urgentes do meu veículo e quais cuidados especiais de transporte devo ter?')">
+                        🚨 Entregas Críticas (UTI) e Cuidados
+                    </button>
+                    <button class="btn btn-secondary" style="width: auto; margin: 0;"
+                        onclick="sendQuickDriverQuestion('Gere um relatório diário/semanal sobre a eficiência das rotas otimizadas de toda a frota, analisando ocupação de carga, economia de distância/recursos e atendimento às prioridades médicas.')">
+                        📊 Relatório Diário/Semanal de Eficiência
+                    </button>
+                    <button class="btn btn-secondary" style="width: auto; margin: 0;"
+                        onclick="sendQuickDriverQuestion('Com base nos padrões identificados nas rotas atuais (pesos, distâncias, prioridades e limites da frota), sugira melhorias práticas no processo logístico hospitalar.')">
+                        💡 Sugerir Melhorias no Processo
+                    </button>
                 </div>
-            </div>
 
-            <div class="panel-card">
-                <h2>
-                    <span>Lista de Pontos de Entrega e Detalhes</span>
-                    <span id="pointsCountBadge" style="font-size: 12px; font-weight: normal; color: #64748b;"></span>
-                </h2>
-                <div class="points-list-wrapper">
-                    <table class="points-detail-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Unidade / Paciente</th>
-                                <th>Coord (X, Y)</th>
-                                <th>Carga</th>
-                                <th>Prioridade</th>
-                                <th>Insumo / Medicamento</th>
-                            </tr>
-                        </thead>
-                        <tbody id="pointsDetailTableBody">
-                            <!-- Preenchido dinamicamente -->
-                        </tbody>
-                    </table>
+                <!-- Histórico do Chat -->
+                <div id="driverChatHistory" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px; min-height: 170px; max-height: 360px; overflow-y: auto; font-size: 13px; line-height: 1.55; margin-bottom: 10px;">
+                    <div style="color: #64748b;">
+                        💡 <b>Como usar:</b> Execute a otimização de rota (e clique em <i>"Gerar JSON da Solução"</i> se desejar salvá-la), selecione o seu veículo acima e faça qualquer pergunta sobre sua rota ou próxima entrega!
+                    </div>
                 </div>
-            </div>
-        </section>
 
-        <!-- Painel Etapa 4: Copiloto do Motorista conectado ao Google Gemini -->
-        <section class="panel-card" style="border-top: 4px solid #2563eb;">
-            <h2>
-                <span>🤖 Etapa 4: Central do Motorista & Copiloto de Rota (Google Gemini)</span>
-                <span style="font-size: 11.5px; font-weight: normal; color: #64748b;">Baseado no arquivo <code>melhor_rota_hospitalar.json</code></span>
-            </h2>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; margin-bottom: 12px; align-items: end;">
-                <div class="field" style="margin: 0;">
-                    <label for="driverSelect">Quem está perguntando?</label>
-                    <select id="driverSelect" onchange="resetDriverConversation()">
-                        <option value="all">Coordenador / Todos os Veículos</option>
-                        <option value="1">Motorista — Veículo 1</option>
-                        <option value="2">Motorista — Veículo 2</option>
-                        <option value="3">Motorista — Veículo 3</option>
-                    </select>
+                <!-- Barra de Pergunta Livre -->
+                <div class="driver-input-row" style="display: flex; gap: 10px;">
+                    <input type="text" id="driverQuestionInput"
+                        placeholder="Ex.: Já entreguei na parada 1, qual é o meu próximo destino e o que preciso separar?"
+                        style="flex: 1; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13.5px;"
+                        onkeydown="if(event.key === 'Enter') sendDriverChatMessage()">
+                    <button class="btn btn-primary" id="btnSendChat" style="width: auto; padding: 9px 18px;" onclick="sendDriverChatMessage()">
+                        Enviar ao Gemini ➤
+                    </button>
                 </div>
-                <div class="field" style="margin: 0;">
-                    <label for="geminiApiKeyInput">
-                        <span>Gemini API Key (Opcional — já configurada no servidor)</span>
-                        <a href="https://aistudio.google.com/apikey" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: normal;">Google AI Studio ↗</a>
-                    </label>
-                    <input type="password" id="geminiApiKeyInput" placeholder="✓ Chave já configurada no servidor (deixe em branco ou cole outra)"
-                        style="width: 100%; padding: 6px 9px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
-                </div>
-                <button class="btn btn-secondary" style="width: auto; margin: 0; padding: 8px 12px;" onclick="resetDriverConversation()">
-                    🔄 Limpar Conversa
-                </button>
-            </div>
-
-            <!-- Botões de Perguntas Rápidas para o Motorista e Gestão Logística -->
-            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
-                <button class="btn btn-secondary" style="width: auto; margin: 0;"
-                    onclick="sendQuickDriverQuestion('Me dê o briefing completo da minha rota, na ordem exata de saída, com o peso e o que devo entregar em cada parada.')">
-                    📋 Briefing completo da minha rota
-                </button>
-                <button class="btn btn-secondary" style="width: auto; margin: 0;"
-                    onclick="sendQuickDriverQuestion('Acabei de sair do Hospital Central. Qual é o meu primeiro destino, quantos quilos vou descarregar lá e qual é o próximo destino depois dele?')">
-                    📍 Qual é meu 1º e 2º destino?
-                </button>
-                <button class="btn btn-secondary" style="width: auto; margin: 0;"
-                    onclick="sendQuickDriverQuestion('Quais são as entregas Críticas (UTI/Emergência) ou Urgentes do meu veículo e quais cuidados especiais de transporte devo ter?')">
-                    🚨 Entregas Críticas (UTI) e Cuidados
-                </button>
-                <button class="btn btn-secondary" style="width: auto; margin: 0;"
-                    onclick="sendQuickDriverQuestion('Gere um relatório diário/semanal sobre a eficiência das rotas otimizadas de toda a frota, analisando ocupação de carga, economia de distância/recursos e atendimento às prioridades médicas.')">
-                    📊 Relatório Diário/Semanal de Eficiência
-                </button>
-                <button class="btn btn-secondary" style="width: auto; margin: 0;"
-                    onclick="sendQuickDriverQuestion('Com base nos padrões identificados nas rotas atuais (pesos, distâncias, prioridades e limites da frota), sugira melhorias práticas no processo logístico hospitalar.')">
-                    💡 Sugerir Melhorias no Processo
-                </button>
-            </div>
-
-            <!-- Histórico do Chat -->
-            <div id="driverChatHistory" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px; min-height: 170px; max-height: 360px; overflow-y: auto; font-size: 13px; line-height: 1.55; margin-bottom: 10px;">
-                <div style="color: #64748b;">
-                    💡 <b>Como usar:</b> Execute a otimização de rota (e clique em <i>"Gerar JSON da Solução"</i> se desejar salvá-la), selecione o seu veículo acima e faça qualquer pergunta sobre sua rota ou próxima entrega!
-                </div>
-            </div>
-
-            <!-- Barra de Pergunta Livre -->
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="driverQuestionInput"
-                    placeholder="Ex.: Já entreguei na parada 1, qual é o meu próximo destino e o que preciso separar?"
-                    style="flex: 1; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13.5px;"
-                    onkeydown="if(event.key === 'Enter') sendDriverChatMessage()">
-                <button class="btn btn-primary" id="btnSendChat" style="width: auto; padding: 9px 18px;" onclick="sendDriverChatMessage()">
-                    Enviar ao Gemini ➤
-                </button>
-            </div>
-        </section>
+            </section>
+        </div>
     </main>
 
     <!-- MODAL PARA EDITAR / ADICIONAR COORDENADAS MANUALMENTE -->
@@ -1073,6 +1335,77 @@
         let eventSource = null;
         let fitnessHistory = [];
         let lastSolutionPayload = null;
+
+        // =====================================================================
+        // CONTROLE DA NAVEGAÇÃO MOBILE POR ABAS E ERGONOMIA DE TOQUE
+        // =====================================================================
+        let activeMobileTab = "map";
+        let addPointTouchMode = false;
+
+        function switchMobileTab(tabKey) {
+            activeMobileTab = tabKey;
+
+            document.querySelectorAll(".mobile-tab-btn").forEach(btn => {
+                btn.classList.toggle("active", btn.dataset.tab === tabKey);
+            });
+
+            const panes = {
+                config: document.getElementById("tabPaneConfig"),
+                map: document.getElementById("tabPaneMap"),
+                routes: document.getElementById("tabPaneRoutes"),
+                driver: document.getElementById("tabPaneDriver")
+            };
+
+            for (const key in panes) {
+                if (panes[key]) {
+                    panes[key].classList.toggle("active", key === tabKey);
+                }
+            }
+
+            if (tabKey === "map" && currentDepot) {
+                setTimeout(() => {
+                    if (lastSolutionPayload && lastSolutionPayload.routes) {
+                        drawRouteCanvas(currentDepot, currentDeliveries, lastSolutionPayload.routes, []);
+                    } else {
+                        drawRouteCanvas(currentDepot, currentDeliveries, [], []);
+                    }
+                    drawChartCanvas(fitnessHistory, getTargetGenerations());
+                }, 50);
+            }
+
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        function toggleAddPointMode() {
+            addPointTouchMode = !addPointTouchMode;
+            const btn = document.getElementById("btnToggleAddPoint");
+            if (btn) {
+                if (addPointTouchMode) {
+                    btn.classList.add("active");
+                    btn.innerHTML = "📍 Modo Toque: ATIVADO (Toque no mapa p/ adicionar parada)";
+                } else {
+                    btn.classList.remove("active");
+                    btn.innerHTML = "📍 Modo Toque: Desativado (Toque livre p/ rolar a página)";
+                }
+            }
+        }
+
+        function togglePenaltiesPopover(event) {
+            if (window.innerWidth <= 960) {
+                event.stopPropagation();
+                const pop = document.querySelector(".penalties-popover");
+                if (pop) {
+                    pop.classList.toggle("show-mobile");
+                }
+            }
+        }
+
+        document.addEventListener("click", function(e) {
+            if (!e.target.closest("#cardPenalties")) {
+                const pop = document.querySelector(".penalties-popover");
+                if (pop) pop.classList.remove("show-mobile");
+            }
+        });
 
         // =====================================================================
         // ETAPA 2: GERENCIAMENTO DE LINHAS INDIVIDUAIS DE VEÍCULOS
@@ -1317,6 +1650,10 @@
         // Clique rápido no Canvas para adicionar um novo ponto de entrega
         document.getElementById("routeCanvas").addEventListener("click", async function(evt) {
             if (eventSource) return;
+            // No mobile (largura <= 960px), só adiciona se o modo de toque estiver ativado para evitar toques durante scroll
+            if (window.innerWidth <= 960 && !addPointTouchMode) {
+                return;
+            }
             const canvas = evt.target;
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
@@ -1707,6 +2044,10 @@
             document.getElementById("btnScenario").disabled = true;
             document.getElementById("btnEditCoords").disabled = true;
             document.getElementById("btnStop").style.display = "block";
+            const mobStart = document.getElementById("btnMobileStart");
+            if (mobStart) mobStart.disabled = true;
+            const mobStop = document.getElementById("btnMobileStop");
+            if (mobStop) mobStop.style.display = "block";
             document.getElementById("btnDownloadJson").style.display = "none";
             document.getElementById("jsonExportStatus").style.display = "none";
 
@@ -1832,6 +2173,10 @@
             document.getElementById("btnScenario").disabled = false;
             document.getElementById("btnEditCoords").disabled = false;
             document.getElementById("btnStop").style.display = "none";
+            const mobStart = document.getElementById("btnMobileStart");
+            if (mobStart) mobStart.disabled = false;
+            const mobStop = document.getElementById("btnMobileStop");
+            if (mobStop) mobStop.style.display = "none";
         }
 
         // =====================================================================
@@ -1996,6 +2341,11 @@
             updateDriverSelectOptions();
             onAlgorithmChange();
             loadScenario();
+
+            // Em telas móveis (<= 960px), inicializa com foco na aba Mapa e Métricas
+            if (window.innerWidth <= 960) {
+                switchMobileTab("map");
+            }
         });
     </script>
 </body>

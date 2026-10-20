@@ -17,6 +17,7 @@ Como executar:
     python -m unittest test_vrp_system.py -v
 """
 
+import os
 import unittest
 from vrp_core import (
     DeliveryPoint,
@@ -124,19 +125,65 @@ class TestVRPSystem(unittest.TestCase):
         self.assertEqual(res_stream.status_code, 200)
         _ = res_stream.get_data(as_text=True)
 
-        res_json = client.post("/api/solution/generate-json", json={})
-        self.assertEqual(res_json.status_code, 200)
-        export_data = res_json.get_json()["data"]
-        self.assertIn("routes", export_data)
+        # Backup da solução JSON oficial para preservar o arquivo de alta fidelidade
+        original_json_content = None
+        if os.path.exists(web_app.SOLUTION_JSON_PATH):
+            with open(web_app.SOLUTION_JSON_PATH, "r", encoding="utf-8") as f:
+                original_json_content = f.read()
 
-        # 3. Download do arquivo JSON
-        res_download = client.get("/api/solution/download-json")
-        self.assertEqual(res_download.status_code, 200)
+        try:
+            res_json = client.post("/api/solution/generate-json", json={})
+            self.assertEqual(res_json.status_code, 200)
+            export_data = res_json.get_json()["data"]
+            self.assertIn("routes", export_data)
 
-        # 4. Construção da instrução de sistema da LLM com o JSON gerado
-        prompt = build_driver_system_instruction(export_data, selected_vehicle_id=1)
-        self.assertIn("MOTORISTA DO VEÍCULO 1", prompt)
-        self.assertIn("Hospital Universitário Central", prompt)
+            # 3. Download do arquivo JSON
+            res_download = client.get("/api/solution/download-json")
+            self.assertEqual(res_download.status_code, 200)
+            res_download.close()
+
+            # 4. Construção da instrução de sistema da LLM com o JSON gerado
+            prompt = build_driver_system_instruction(export_data, selected_vehicle_id=1)
+            self.assertIn("MOTORISTA DO VEÍCULO 1", prompt)
+            self.assertIn("Hospital Universitário Central", prompt)
+        finally:
+            if original_json_content is not None:
+                with open(web_app.SOLUTION_JSON_PATH, "w", encoding="utf-8") as f:
+                    f.write(original_json_content)
+
+    def test_mobile_ui_template_and_responsiveness(self):
+        """Valida se o template web contém as diretivas de responsividade, meta viewport e navegação em abas mobile."""
+        client = web_app.app.test_client()
+        res = client.get("/")
+        self.assertEqual(res.status_code, 200)
+        html = res.get_data(as_text=True)
+
+        # 1. Metatag de Viewport Mobile
+        self.assertIn('<meta name="viewport" content="width=device-width, initial-scale=1.0">', html)
+
+        # 2. Barra de Navegação Mobile e seus 4 botões de abas
+        self.assertIn('class="mobile-tab-bar"', html)
+        self.assertIn('id="mobileTabBar"', html)
+        self.assertIn("switchMobileTab('config')", html)
+        self.assertIn("switchMobileTab('map')", html)
+        self.assertIn("switchMobileTab('routes')", html)
+        self.assertIn("switchMobileTab('driver')", html)
+
+        # 3. Painéis de Abas (Tab Panes)
+        self.assertIn('id="tabPaneConfig"', html)
+        self.assertIn('id="tabPaneMap"', html)
+        self.assertIn('id="tabPaneRoutes"', html)
+        self.assertIn('id="tabPaneDriver"', html)
+
+        # 4. Controle de proteção de toque para o Canvas no mobile
+        self.assertIn('id="btnToggleAddPoint"', html)
+        self.assertIn('toggleAddPointMode()', html)
+
+        # 5. Media Queries e classes responsivas
+        self.assertIn('@media (max-width: 960px)', html)
+        self.assertIn('@media (min-width: 961px)', html)
+        self.assertIn('driver-quick-chips', html)
+
 
 
 if __name__ == "__main__":
