@@ -28,7 +28,10 @@ from vrp_core import (
     split_route_into_vehicles,
     evaluate_solution_details
 )
-from route_optimizer_dispatcher import dispatch_optimization
+from route_optimizer_dispatcher import (
+    dispatch_optimization,
+    AVAILABLE_ALGORITHMS
+)
 from llm_driver_assistant import build_driver_system_instruction
 import web_app
 
@@ -183,6 +186,80 @@ class TestVRPSystem(unittest.TestCase):
         self.assertIn('@media (max-width: 960px)', html)
         self.assertIn('@media (min-width: 961px)', html)
         self.assertIn('driver-quick-chips', html)
+
+    def test_all_points_visited_under_severe_constraints(self):
+        """
+        Regra Fundamental: 100% dos pontos DEVEM ser visitados por algum veículo,
+        mesmo quando capacidade e autonomia forem severamente insuficientes (aplicando penalidades).
+        """
+        depot, deliveries = get_hospital_scenario()
+        n_total = len(deliveries)
+        # Frota minúscula: 1 veículo com capacidade para apenas 10kg e 100px de autonomia
+        severely_constrained_fleet = [{
+            "vehicle_id": 1,
+            "name": "Moto de Resgate",
+            "capacity_kg": 10.0,
+            "max_distance": 100.0
+        }]
+
+        for algo in AVAILABLE_ALGORITHMS.keys():
+            params = {
+                "population_size": 20, "n_generations": 4,
+                "n_ants": 5, "n_iterations": 4,
+                "initial_temp": 500.0, "cooling_rate": 0.9,
+                "nn_generations": 4, "ch_generations": 4
+            }
+            generator = dispatch_optimization(algo, depot, deliveries, severely_constrained_fleet, params)
+            last_step = None
+            for step in generator:
+                last_step = step
+
+            self.assertIsNotNone(last_step, f"Algoritmo {algo} não retornou nenhum passo.")
+            routes = last_step["eval_details"]["routes"]
+
+            # Coleta todas as paradas visitadas em todos os veículos
+            visited_ids = set(s.id for r in routes for s in r["stops"])
+            self.assertEqual(
+                len(visited_ids),
+                n_total,
+                f"Algoritmo '{algo}' deixou pontos sem visitar! Esperado {n_total}, visitados {len(visited_ids)}"
+            )
+
+    def test_scenario_persistence_and_consecutive_optimization_runs(self):
+        """
+        Valida que re-execuções consecutivas da otimização mantêm o último cenário gerado
+        (ex: 18 pontos aleatórios) e nunca revertem indevidamente para os 14 pontos padrão.
+        """
+        client = web_app.app.test_client()
+
+        # 1. Gera e persiste um cenário com 18 pontos
+        res_post = client.post("/api/scenario", json={"mode": "random", "n_deliveries": 18})
+        self.assertEqual(res_post.status_code, 200)
+        data_post = res_post.get_json()
+        self.assertEqual(len(data_post["deliveries"]), 18)
+
+        # 2. Executa a 1ª otimização via stream
+        res_stream1 = client.get("/api/optimize/stream?algorithm=genetic_algorithm&n_generations=10&population_size=20")
+        self.assertEqual(res_stream1.status_code, 200)
+        content1 = res_stream1.get_data(as_text=True)
+        res_stream1.close()
+        self.assertIn('"total_generations": 10', content1)
+        self.assertIn('"id": 18', content1)  # Garante que o ponto 18 está presente na rota
+
+        # 3. Executa a 2ª otimização consecutiva SEM trocar de algoritmo
+        res_stream2 = client.get("/api/optimize/stream?algorithm=genetic_algorithm&n_generations=10&population_size=20")
+        self.assertEqual(res_stream2.status_code, 200)
+        content2 = res_stream2.get_data(as_text=True)
+        res_stream2.close()
+        self.assertIn('"total_generations": 10', content2)
+        self.assertIn('"id": 18', content2)  # Continua contendo o ponto 18 na 2ª execução!
+
+        # Verifica se o cenário persistido em disco continua contendo exatamente os 18 pontos
+        depot_persisted, deliveries_persisted = web_app.load_scenario_from_disk()
+        self.assertEqual(len(deliveries_persisted), 18)
+
+        # Limpeza: restaura o cenário hospitalar padrão
+        client.post("/api/scenario", json={"mode": "predefined"})
 
 
 

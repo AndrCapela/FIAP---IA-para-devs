@@ -360,6 +360,47 @@ def split_route_into_vehicles(
             "autonomy_exceeded": max(0.0, total_route_dist - v_aut)
         })
 
+    # Regra Fundamental: 100% dos pontos de entrega DEVEM ser visitados sempre
+    # Caso a frota termine e ainda restem paradas ou ocorra qualquer anomalia de corte,
+    # as entregas pendentes são obrigatoriamente alocadas ao último veículo disponível,
+    # aplicando a devida penalidade de excesso de carga e autonomia na Função Fitness.
+    assigned_point_ids = set(p.id for r in routes for p in r["stops"])
+    missing_points = [p for p in chromosome if p.id not in assigned_point_ids]
+    if missing_points:
+        if not routes:
+            v_spec = specs[0]
+            v_cap = v_spec["capacity_kg"]
+            v_aut = v_spec["max_distance"]
+            routes.append({
+                "vehicle_id": v_spec["vehicle_id"],
+                "vehicle_name": v_spec["name"],
+                "capacity_limit_kg": v_cap,
+                "autonomy_limit_px": v_aut,
+                "stops": [],
+                "full_path": [depot, depot],
+                "load_kg": 0.0,
+                "distance": 0.0,
+                "capacity_exceeded": 0.0,
+                "autonomy_exceeded": 0.0
+            })
+        target_route = routes[-1]
+        target_route["stops"].extend(missing_points)
+        target_route["full_path"] = [depot] + target_route["stops"] + [depot]
+
+        recalc_dist = 0.0
+        recalc_load = 0.0
+        prev_p = depot
+        for st in target_route["stops"]:
+            recalc_dist += calculate_distance(prev_p, st)
+            recalc_load += st.demand_kg
+            prev_p = st
+        recalc_dist += calculate_distance(prev_p, depot)
+
+        target_route["distance"] = recalc_dist
+        target_route["load_kg"] = recalc_load
+        target_route["capacity_exceeded"] = max(0.0, recalc_load - target_route["capacity_limit_kg"])
+        target_route["autonomy_exceeded"] = max(0.0, recalc_dist - target_route["autonomy_limit_px"])
+
     return routes
 
 

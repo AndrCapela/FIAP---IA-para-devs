@@ -14,6 +14,9 @@ __pycache__/
 .env.*
 !.env.example
 
+# Arquivos de dados e caches em runtime
+current_scenario.json
+
 # Arquivos de IDE e Sistema Operacional
 .vscode/
 .idea/

@@ -37,7 +37,9 @@ from llm_driver_assistant import ask_driver_assistant
 app = Flask(__name__)
 
 # Caminho onde o arquivo JSON da solução gerada será salvo
-SOLUTION_JSON_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "melhor_rota_hospitalar.json")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SOLUTION_JSON_PATH = os.path.join(BASE_DIR, "melhor_rota_hospitalar.json")
+SCENARIO_JSON_PATH = os.path.join(BASE_DIR, "current_scenario.json")
 
 # Estado atual do cenário e da última solução em memória
 CURRENT_SCENARIO = {
@@ -61,6 +63,53 @@ def serialize_point(pt: DeliveryPoint) -> dict:
         "lat": pt.lat,
         "lon": pt.lon
     }
+
+
+def deserialize_point(data: dict) -> DeliveryPoint:
+    """Reconstrói um objeto `DeliveryPoint` a partir de um dicionário serializado."""
+    prio = int(data.get("priority", 1))
+    return DeliveryPoint(
+        id=int(data["id"]),
+        name=str(data.get("name", f"Unidade #{data['id']:02d}")),
+        x=int(data["x"]),
+        y=int(data["y"]),
+        demand_kg=float(data.get("demand_kg", 10.0)),
+        priority=prio if prio in (1, 2, 3) else 1,
+        item_description=str(data.get("item_description", f"Insumo ({PRIORITY_LABELS.get(prio, 'Regular')})")),
+        lat=float(data.get("lat", -23.5505)),
+        lon=float(data.get("lon", -46.6333))
+    )
+
+
+def save_scenario_to_disk(depot: DeliveryPoint, deliveries: List[DeliveryPoint]):
+    """Persiste o cenário atual em arquivo JSON para garantir sincronização entre múltiplos workers WSGI (Gunicorn)."""
+    try:
+        payload = {
+            "depot": serialize_point(depot),
+            "deliveries": [serialize_point(p) for p in deliveries]
+        }
+        with open(SCENARIO_JSON_PATH, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.warning(f"Não foi possível persistir cenário em disco: {e}")
+
+
+def load_scenario_from_disk() -> Tuple[DeliveryPoint, List[DeliveryPoint]]:
+    """Carrega o cenário persistido do disco para sincronizar múltiplos workers e evitar reset para 14 pontos."""
+    if os.path.exists(SCENARIO_JSON_PATH):
+        try:
+            with open(SCENARIO_JSON_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            depot = deserialize_point(data["depot"])
+            deliveries = [deserialize_point(p) for p in data.get("deliveries", [])]
+            if deliveries:
+                return depot, deliveries
+        except Exception as e:
+            logger.warning(f"Erro ao ler cenário persistido do disco: {e}")
+
+    depot, deliveries = get_hospital_scenario()
+    save_scenario_to_disk(depot, deliveries)
+    return depot, deliveries
 
 
 def serialize_evaluation(eval_details: dict, depot: DeliveryPoint, penalty_weights: dict = None) -> dict:
@@ -155,8 +204,8 @@ def build_export_json_from_payload(solution_payload: dict) -> dict:
     return export_data
 
 
-# Carrega o cenário hospitalar padrão ao iniciar
-depot_init, deliveries_init = get_hospital_scenario()
+# Carrega o cenário hospitalar padrão ao iniciar (ou lê do disco se já houver cenário persistido)
+depot_init, deliveries_init = load_scenario_from_disk()
 CURRENT_SCENARIO["depot"] = depot_init
 CURRENT_SCENARIO["deliveries"] = deliveries_init
 
@@ -180,6 +229,7 @@ def handle_scenario():
     - mode == 'predefined': carrega as 14 unidades hospitalares pré-definidas;
     - mode == 'random': sorteia `n_deliveries` pontos aleatórios;
     - mode == 'custom': atualiza os pontos com as coordenadas/pesos/prioridades editados pelo usuário.
+    Persiste sempre em disco para sincronização entre processos Gunicorn e evitar reversão aos 14 pontos.
     """
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
@@ -194,9 +244,12 @@ def handle_scenario():
             )
             CURRENT_SCENARIO["depot"] = depot
             CURRENT_SCENARIO["deliveries"] = deliveries
+            save_scenario_to_disk(depot, deliveries)
 
         elif mode == "custom" and "deliveries" in data:
             depot = CURRENT_SCENARIO["depot"]
+            if depot is None:
+                depot, _ = load_scenario_from_disk()
             custom_list = []
             for idx, item in enumerate(data["deliveries"], start=1):
                 px = max(460, min(1070, int(float(item.get("x", 700)))))
@@ -205,7 +258,7 @@ def handle_scenario():
                 prio = prio if prio in (1, 2, 3) else 1
                 demand = max(1.0, float(item.get("demand_kg", 10.0)))
                 name = str(item.get("name", f"Unidade #{idx:02d}")).strip() or f"Unidade #{idx:02d}"
-                desc = str(item.get("item_description", f"Insumo ({PRIORITY_LABELS[prio]})"))
+                desc = str(item.get("item_description", f"Insumo ({PRIORITY_LABELS.get(prio, 'Regular')})"))
 
                 lat = -23.5587 - ((py - depot.y) * 0.0003)
                 lon = -46.6623 + ((px - depot.x) * 0.0003)
@@ -224,12 +277,21 @@ def handle_scenario():
                     )
                 )
             if custom_list:
+                CURRENT_SCENARIO["depot"] = depot
                 CURRENT_SCENARIO["deliveries"] = custom_list
+                save_scenario_to_disk(depot, custom_list)
 
-        else:
+        elif mode == "predefined":
             depot, deliveries = get_hospital_scenario()
             CURRENT_SCENARIO["depot"] = depot
             CURRENT_SCENARIO["deliveries"] = deliveries
+            save_scenario_to_disk(depot, deliveries)
+
+    else:
+        # GET: sempre sincroniza do disco para refletir qualquer alteração recente
+        depot, deliveries = load_scenario_from_disk()
+        CURRENT_SCENARIO["depot"] = depot
+        CURRENT_SCENARIO["deliveries"] = deliveries
 
     return jsonify({
         "depot": serialize_point(CURRENT_SCENARIO["depot"]),
@@ -306,8 +368,10 @@ def optimize_stream():
         "apply_local_search": request.args.get("apply_local_search", "true").lower() == "true",
     }
 
-    depot = CURRENT_SCENARIO["depot"]
-    deliveries = CURRENT_SCENARIO["deliveries"]
+    # Sempre sincroniza a partir do disco para garantir consistência entre múltiplos workers WSGI (Gunicorn)
+    depot, deliveries = load_scenario_from_disk()
+    CURRENT_SCENARIO["depot"] = depot
+    CURRENT_SCENARIO["deliveries"] = deliveries
 
     def event_generator():
         for step_data in dispatch_optimization(
@@ -335,7 +399,10 @@ def optimize_stream():
         event_generator(),
         mimetype="text/event-stream",
         headers={
-            "Cache-Control": "no-cache",
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
             "X-Accel-Buffering": "no"
         }
     )

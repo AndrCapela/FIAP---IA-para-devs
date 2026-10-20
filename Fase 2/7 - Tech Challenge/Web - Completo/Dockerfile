@@ -27,5 +27,5 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/')" || exit 1
 
-# Inicializa via Gunicorn (servidor WSGI profissional para produção)
-CMD ["gunicorn", "--workers", "2", "--bind", "0.0.0.0:5000", "--timeout", "120", "web_app:app"]
+# Inicializa via Gunicorn (servidor WSGI com 1 worker multithread para manter estado de cenário sincronizado)
+CMD ["gunicorn", "--workers", "1", "--threads", "8", "--bind", "0.0.0.0:5000", "--timeout", "120", "web_app:app"]

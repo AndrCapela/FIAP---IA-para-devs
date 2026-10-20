@@ -2056,9 +2056,23 @@
         // =====================================================================
         // EXECUÇÃO DO STREAMING DO ALGORITMO SELECIONADO
         // =====================================================================
-        function startOptimization() {
+        async function startOptimization() {
             stopOptimization();
             fitnessHistory = [];
+
+            // 1. Sincroniza o cenário exibido em tela diretamente no backend antes de rodar
+            // para garantir que re-execuções consecutivas usem sempre as coordenadas atuais
+            if (currentDeliveries && currentDeliveries.length > 0) {
+                try {
+                    await fetch("/api/scenario", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ mode: "custom", deliveries: currentDeliveries })
+                    });
+                } catch (err) {
+                    console.warn("Falha ao sincronizar cenário antes da otimização:", err);
+                }
+            }
 
             const algorithm = document.getElementById("algorithmSelect").value;
 
@@ -2074,6 +2088,7 @@
             document.getElementById("jsonExportStatus").style.display = "none";
 
             const params = new URLSearchParams({
+                _t: Date.now(), // Cache-buster para garantir requisição nova e evitar replays
                 algorithm: algorithm,
                 vehicles_json: JSON.stringify(vehiclesConfig),
                 // Pesos de Penalidade da Função Fitness
