@@ -607,11 +607,14 @@
             font-size: 13.5px;
         }
 
-        .tab-pane {
+        .main-content .tab-pane {
             width: 100%;
         }
 
         @media (min-width: 961px) {
+            body {
+                flex-direction: row !important;
+            }
             .mobile-tab-bar {
                 display: none !important;
             }
@@ -624,8 +627,27 @@
             .tab-pane {
                 display: block !important;
             }
+            /* Garante fidelidade de 100% no Desktop: barra lateral fixa em 390px sem esticar na tela */
+            aside.sidebar,
             aside.sidebar.tab-pane {
                 display: flex !important;
+                flex: 0 0 390px !important;
+                width: 390px !important;
+                min-width: 390px !important;
+                max-width: 390px !important;
+                max-height: 100vh !important;
+                position: sticky !important;
+                top: 0 !important;
+                border-right: 1px solid var(--border) !important;
+                border-bottom: none !important;
+                box-sizing: border-box !important;
+            }
+            .main-content {
+                flex: 1 1 0% !important;
+                min-width: 0 !important;
+                width: auto !important;
+                padding: 18px 20px !important;
+                gap: 16px !important;
             }
         }
 
@@ -2345,6 +2367,17 @@
             // Em telas móveis (<= 960px), inicializa com foco na aba Mapa e Métricas
             if (window.innerWidth <= 960) {
                 switchMobileTab("map");
+            }
+        });
+
+        window.addEventListener("resize", () => {
+            if (window.innerWidth > 960 && currentDepot) {
+                if (lastSolutionPayload && lastSolutionPayload.routes) {
+                    drawRouteCanvas(currentDepot, currentDeliveries, lastSolutionPayload.routes, []);
+                } else {
+                    drawRouteCanvas(currentDepot, currentDeliveries, [], []);
+                }
+                drawChartCanvas(fitnessHistory, getTargetGenerations());
             }
         });
     </script>
